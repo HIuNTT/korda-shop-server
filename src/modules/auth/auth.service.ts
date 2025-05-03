@@ -5,15 +5,19 @@ import { UserService } from '../user/user.service';
 import { RoleType } from '#/constants/role.constant';
 import { AuthToken } from './interfaces/auth.interface';
 import { TokenService } from './services/token.service';
-import { LoginDto } from './dto/auth-google.dto';
+import { LoginDto, SignUpDto } from './dto/auth.dto';
 import { isEmpty } from 'lodash';
 import * as bcrypt from 'bcrypt';
+import { InjectRedis } from '#/common/decorators/inject-redis.decorator';
+import Redis from 'ioredis';
+import { genVerifiedEmailKey } from '#/helper/genRedisKey';
 
 @Injectable()
 export class AuthService {
   constructor(
     private userService: UserService,
     private tokenService: TokenService,
+    @InjectRedis() private readonly redis: Redis,
   ) {}
 
   async validateSocialUser(authProvider: IProvider, profile: ISocial): Promise<AuthToken> {
@@ -73,6 +77,38 @@ export class AuthService {
 
     return {
       user,
+      accessToken,
+      refreshToken,
+    };
+  }
+
+  async signUp({ email, fullName, password }: SignUpDto): Promise<AuthToken> {
+    const user = await this.userService.findUserByEmail(email);
+    if (user) {
+      throw new UnprocessableEntityException('Email đã tồn tại');
+    }
+
+    const isVefiedEmail = await this.redis.get(genVerifiedEmailKey(email));
+    if (!Boolean(JSON.parse(isVefiedEmail))) {
+      throw new UnprocessableEntityException('Email chưa được xác thực');
+    }
+
+    const newUser = await this.userService.createUser({
+      email,
+      fullName,
+      password,
+      isActived: true,
+    });
+
+    const { accessToken, refreshToken } = await this.tokenService.generateTokens(
+      newUser.id,
+      newUser.role as RoleType,
+    );
+
+    delete newUser.password; // Remove password from user object
+
+    return {
+      user: newUser,
       accessToken,
       refreshToken,
     };

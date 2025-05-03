@@ -9,10 +9,15 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { RefreshTokenEntity } from './entities/refresh-token.entity';
 import { TokenService } from './services/token.service';
 import { AuthGoogleService } from './services/auth-google.service';
+import { VerificationController } from './controllers/verification.controller';
+import { VerificationService } from './services/verification.service';
+import { JwtStrategy } from './strategies/jwt.strategy';
+import { PassportModule } from '@nestjs/passport';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([RefreshTokenEntity]),
+    PassportModule,
     JwtModule.registerAsync({
       useFactory: (configService: ConfigService) => {
         const { jwtExpire, jwtSecret } = configService.get<ISecurityConfig>(securityRegToken);
@@ -27,7 +32,7 @@ import { AuthGoogleService } from './services/auth-google.service';
     }),
     UserModule,
   ],
-  controllers: [AuthController],
-  providers: [AuthService, TokenService, AuthGoogleService],
+  controllers: [AuthController, VerificationController],
+  providers: [AuthService, TokenService, AuthGoogleService, VerificationService, JwtStrategy],
 })
 export class AuthModule {}

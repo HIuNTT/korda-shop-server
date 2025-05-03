@@ -1,11 +1,12 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { UserEntity } from './entities/user.entity';
 import { EntityManager, Repository } from 'typeorm';
 import { UserDto } from './dto/user.dto';
-import { isEmpty } from 'lodash';
 import * as bcrypt from 'bcrypt';
 import { ProviderType } from '#/constants/provider.constant';
+import { isNil } from 'lodash';
+import { Exists } from './interfaces/user.interface';
 
 @Injectable()
 export class UserService {
@@ -65,5 +66,13 @@ export class UserService {
       //   relations: ['profile'],
       // });
     });
+  }
+
+  async checkEmailExists(email: string): Promise<Exists> {
+    const exists = await this.userRepository.findOneBy({ email });
+
+    return {
+      existed: !isNil(exists),
+    };
   }
 }

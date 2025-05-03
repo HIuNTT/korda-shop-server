@@ -1,4 +1,5 @@
 import { IProvider } from '#/constants/provider.constant';
+import { IsNotEmpty } from 'class-validator';
 
 export class UserDto {
   email?: string;
@@ -8,4 +9,9 @@ export class UserDto {
   provider?: IProvider;
   password?: string;
   isActived?: boolean;
+}
+
+export class UserExistDto {
+  @IsNotEmpty()
+  email: string;
 }

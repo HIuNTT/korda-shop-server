@@ -1,7 +1,7 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthGoogleService } from './services/auth-google.service';
-import { AuthGoogleDto, LoginDto } from './dto/auth-google.dto';
+import { AuthGoogleDto, LoginDto, SignUpDto } from './dto/auth.dto';
 import { AuthToken } from './interfaces/auth.interface';
 
 @Controller('auth')
@@ -20,5 +20,10 @@ export class AuthController {
   @Post('login')
   async login(@Body() dto: LoginDto): Promise<AuthToken> {
     return await this.authService.validateLoginUser(dto);
+  }
+
+  @Post('sign-up')
+  async signUp(@Body() dto: SignUpDto): Promise<AuthToken> {
+    return await this.authService.signUp(dto);
   }
 }

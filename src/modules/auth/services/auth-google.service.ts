@@ -1,7 +1,7 @@
 import { GoogleConfig, IGoogleConfig } from '#/config';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { OAuth2Client } from 'google-auth-library';
-import { AuthGoogleDto } from '../dto/auth-google.dto';
+import { AuthGoogleDto } from '../dto/auth.dto';
 import { ISocial } from '../interfaces/social.interface';
 
 @Injectable()
