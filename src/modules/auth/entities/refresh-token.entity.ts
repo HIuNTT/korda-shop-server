@@ -1,4 +1,4 @@
-import type { UserEntity } from '#/modules/user/entities/user.entity';
+import type { User } from '#/modules/user/entities/user.entity';
 import {
   BaseEntity,
   Column,
@@ -9,23 +9,23 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
-@Entity({ name: 'user_refresh_tokens' })
-export class RefreshTokenEntity extends BaseEntity {
+@Entity()
+export class RefreshToken extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
   @Column()
   value!: string;
 
-  @Column()
+  @Column({ type: 'timestamptz' })
   expiredAt!: Date;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 
-  @ManyToOne('UserEntity', (user: UserEntity) => user.refreshTokens, {
+  @ManyToOne('User', (user: User) => user.refreshTokens, {
     onDelete: 'CASCADE',
   })
   @JoinColumn()
-  user!: UserEntity;
+  user!: User;
 }

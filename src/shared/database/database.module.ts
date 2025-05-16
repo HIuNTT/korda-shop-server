@@ -1,15 +1,16 @@
-import { dbRegToken, IDatabaseConfig } from '#/config';
+import { AllConfigType, dbRegToken, IDatabaseConfig } from '#/config';
 import { env } from '#/config/env';
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource, LoggerOptions } from 'typeorm';
+import { SnakeNamingStrategy } from './snake-naming.strategy';
 
 @Module({
   imports: [
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
+      useFactory: (configService: ConfigService<AllConfigType>) => {
         let loggerOptions: LoggerOptions = env('DB_LOGGING') as 'all';
 
         try {
@@ -22,6 +23,7 @@ import { DataSource, LoggerOptions } from 'typeorm';
           ...configService.get<IDatabaseConfig>(dbRegToken),
           autoLoadEntities: true,
           logging: loggerOptions,
+          namingStrategy: new SnakeNamingStrategy(),
         };
       },
       // dataSource receives the configured DataSourceOptions

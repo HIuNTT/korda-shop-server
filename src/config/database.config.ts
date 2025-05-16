@@ -16,6 +16,7 @@ export const DatabaseConfig = registerAs(
     synchronize: envBoolean('DB_SYNCHRONIZE', false),
     entities: ['dist/modules/**/*.entity{.ts,.js}'],
     migrations: ['dist/migrations/*{.ts,.js}'],
+    subscribers: ['dist/modules/**/*.subscriber{.ts,.js}'],
   }),
 );
 

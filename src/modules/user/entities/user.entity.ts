@@ -1,37 +1,40 @@
 import { CommonEntity } from '#/common/entity/common.entity';
 import { Column, Entity, OneToMany, OneToOne, Relation } from 'typeorm';
-import { ProfileEntity } from './profile.entity';
+import { Profile } from './profile.entity';
 import { RoleType } from '#/constants/role.constant';
 import { ProviderType } from '#/constants/provider.constant';
-import { RefreshTokenEntity } from '#/modules/auth/entities/refresh-token.entity';
+import { RefreshToken } from '#/modules/auth/entities/refresh-token.entity';
+import { Exclude, Expose } from 'class-transformer';
 
-@Entity({ name: 'users' })
-export class UserEntity extends CommonEntity {
+@Entity()
+export class User extends CommonEntity {
   @Column({ nullable: true })
-  email: string;
-
-  @Column({ nullable: true })
-  phone: string;
+  email?: string;
 
   @Column({ nullable: true })
-  password: string;
+  phone?: string;
+
+  @Exclude()
+  @Column({ nullable: true })
+  password?: string;
 
   @Column({ type: 'enum', enum: ProviderType, nullable: true })
-  provider: ProviderType;
+  provider?: ProviderType;
 
+  @Expose({ name: 'is_actived' })
   @Column({ type: 'boolean', default: false })
   isActived: boolean;
 
   @Column({ type: 'enum', enum: RoleType, default: RoleType.USER })
   role: RoleType;
 
-  @OneToMany(() => RefreshTokenEntity, (refreshToken) => refreshToken.user, {
+  @OneToMany(() => RefreshToken, (refreshToken) => refreshToken.user, {
     cascade: true,
   })
-  refreshTokens: Relation<RefreshTokenEntity[]>;
+  refreshTokens: Relation<RefreshToken[]>;
 
-  @OneToOne('ProfileEntity', (profile: ProfileEntity) => profile.user, {
+  @OneToOne(() => Profile, (profile) => profile.user, {
     cascade: true,
   })
-  profile: ProfileEntity;
+  profile: Relation<Profile>;
 }

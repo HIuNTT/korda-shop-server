@@ -1,5 +1,5 @@
 import { IProvider } from '#/constants/provider.constant';
-import { Injectable, UnprocessableEntityException } from '@nestjs/common';
+import { Inject, Injectable, UnprocessableEntityException } from '@nestjs/common';
 import { ISocial } from './interfaces/social.interface';
 import { UserService } from '../user/user.service';
 import { RoleType } from '#/constants/role.constant';
@@ -10,7 +10,8 @@ import { isEmpty } from 'lodash';
 import * as bcrypt from 'bcrypt';
 import { InjectRedis } from '#/common/decorators/inject-redis.decorator';
 import Redis from 'ioredis';
-import { genVerifiedEmailKey } from '#/helper/genRedisKey';
+import { genTokenBlacklistKey, genVerifiedEmailKey } from '#/helper/genRedisKey';
+import { ISecurityConfig, SecurityConfig } from '#/config';
 
 @Injectable()
 export class AuthService {
@@ -18,6 +19,7 @@ export class AuthService {
     private userService: UserService,
     private tokenService: TokenService,
     @InjectRedis() private readonly redis: Redis,
+    @Inject(SecurityConfig.KEY) private securityConfig: ISecurityConfig,
   ) {}
 
   async validateSocialUser(authProvider: IProvider, profile: ISocial): Promise<AuthToken> {
@@ -31,7 +33,6 @@ export class AuthService {
         provider: authProvider,
         isActived: true,
       });
-      console.log('User created:', user);
     }
 
     const { accessToken, refreshToken } = await this.tokenService.generateTokens(
@@ -39,16 +40,14 @@ export class AuthService {
       user.role as RoleType,
     );
 
-    delete user.password; // Remove password from user object
-
-    return {
+    return new AuthToken({
       user,
       accessToken,
       refreshToken,
-    };
+    });
   }
 
-  async validateLoginUser({ credential, password }: LoginDto) {
+  async validateLoginUser({ credential, password }: LoginDto): Promise<AuthToken> {
     const isEmail = credential.includes('@');
 
     const user = isEmail
@@ -73,13 +72,11 @@ export class AuthService {
       user.role as RoleType,
     );
 
-    delete user.password; // Remove password from user object
-
-    return {
+    return new AuthToken({
       user,
       accessToken,
       refreshToken,
-    };
+    });
   }
 
   async signUp({ email, fullName, password }: SignUpDto): Promise<AuthToken> {
@@ -105,12 +102,20 @@ export class AuthService {
       newUser.role as RoleType,
     );
 
-    delete newUser.password; // Remove password from user object
+    await this.redis.del(genVerifiedEmailKey(email));
 
-    return {
+    return new AuthToken({
       user: newUser,
       accessToken,
       refreshToken,
-    };
+    });
+  }
+
+  async logout(user: IAuthUser, accessToken: string, refreshToken: string): Promise<void> {
+    const exp = user.exp
+      ? (user.exp - Date.now() / 1000).toFixed(0)
+      : this.securityConfig.jwtExpire;
+    await this.redis.set(genTokenBlacklistKey(accessToken), accessToken, 'EX', exp);
+    await this.tokenService.removeRefreshToken(refreshToken);
   }
 }

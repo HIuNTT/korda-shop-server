@@ -25,15 +25,12 @@ export class AuthGoogleService {
       throw new BadRequestException('Có lỗi xảy ra');
     }
 
-    console.log('id_token', id_token);
-
     const ticket = await this.oAuth2Client.verifyIdToken({
       idToken: id_token,
       audience: this.googleConfig.clientId,
     });
 
     const data = ticket.getPayload();
-    console.log('data', data);
 
     if (!data) {
       throw new BadRequestException('Có lỗi xảy ra');

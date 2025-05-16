@@ -6,17 +6,18 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { ISecurityConfig, securityRegToken } from '#/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { RefreshTokenEntity } from './entities/refresh-token.entity';
+import { RefreshToken } from './entities/refresh-token.entity';
 import { TokenService } from './services/token.service';
 import { AuthGoogleService } from './services/auth-google.service';
 import { VerificationController } from './controllers/verification.controller';
 import { VerificationService } from './services/verification.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { PassportModule } from '@nestjs/passport';
+import { AccountController } from './controllers/account.controller';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([RefreshTokenEntity]),
+    TypeOrmModule.forFeature([RefreshToken]),
     PassportModule,
     JwtModule.registerAsync({
       useFactory: (configService: ConfigService) => {
@@ -32,7 +33,7 @@ import { PassportModule } from '@nestjs/passport';
     }),
     UserModule,
   ],
-  controllers: [AuthController, VerificationController],
+  controllers: [AuthController, VerificationController, AccountController],
   providers: [AuthService, TokenService, AuthGoogleService, VerificationService, JwtStrategy],
 })
 export class AuthModule {}

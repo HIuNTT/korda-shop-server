@@ -1,3 +1,3 @@
-export class Exists {
+export interface Exists {
   existed: boolean;
 }

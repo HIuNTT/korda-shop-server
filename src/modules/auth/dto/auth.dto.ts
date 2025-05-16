@@ -1,3 +1,4 @@
+import { Expose } from 'class-transformer';
 import { IsEmail, IsNotEmpty, IsStrongPassword } from 'class-validator';
 
 export class AuthGoogleDto {
@@ -18,6 +19,7 @@ export class SignUpDto {
   @IsEmail()
   email: string;
 
+  @Expose({ name: 'full_name' })
   @IsNotEmpty()
   fullName: string;
 
@@ -46,3 +48,11 @@ export class VerifyEmailCodeDto {
   @IsNotEmpty()
   code: string;
 }
+
+export class LogoutDto {
+  @Expose({ name: 'refresh_token' })
+  @IsNotEmpty()
+  refreshToken: string;
+}
+
+export class RefreshTokenDto extends LogoutDto {}

@@ -1,3 +1,5 @@
+export const isDev = process.env.NODE_ENV === 'development';
+
 export type BaseType = string | boolean | number | null | undefined;
 
 function formatValue<T extends BaseType = string>(

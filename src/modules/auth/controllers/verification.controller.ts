@@ -5,7 +5,9 @@ import { InjectRedis } from '#/common/decorators/inject-redis.decorator';
 import Redis from 'ioredis';
 import { genEmailVerificationCodeKey } from '#/helper/genRedisKey';
 import { VerificationService } from '../services/verification.service';
+import { Public } from '../decorators/public.decorator';
 
+@Public()
 @Controller('otp')
 export class VerificationController {
   constructor(
