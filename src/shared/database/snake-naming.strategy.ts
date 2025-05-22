@@ -28,10 +28,12 @@ export class SnakeNamingStrategy extends DefaultNamingStrategy implements Naming
     firstPropertyName: string,
     secondPropertyName: string,
   ): string {
-    return snakeCase(pluralize.plural(firstTableName) + '_' + pluralize.plural(secondTableName));
+    return snakeCase(pluralize.singular(firstTableName) + '_' + pluralize.plural(secondTableName));
   }
 
   joinTableColumnName(tableName: string, propertyName: string, columnName?: string): string {
-    return snakeCase(tableName + '_' + (columnName ? columnName : propertyName));
+    return snakeCase(
+      pluralize.singular(tableName) + '_' + (columnName ? columnName : propertyName),
+    );
   }
 }

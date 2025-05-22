@@ -12,6 +12,9 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { CategoryModule } from './modules/category/category.module';
+import { ProductAttributeGroupModule } from './modules/product-attribute-group/product-attribute-group.module';
+import { ProductAttributeModule } from './modules/product-attribute/product-attribute.module';
+import { ProductModule } from './modules/product/product.module';
 
 @Module({
   imports: [
@@ -25,6 +28,9 @@ import { CategoryModule } from './modules/category/category.module';
     SharedModule,
     AuthModule,
     CategoryModule,
+    ProductAttributeGroupModule,
+    ProductAttributeModule,
+    ProductModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

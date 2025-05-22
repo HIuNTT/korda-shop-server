@@ -62,6 +62,10 @@ export class CategoryService {
     await this.categoryRepository.delete(id);
   }
 
+  async findOneById(id: number): Promise<Category> {
+    return this.categoryRepository.findOneByOrFail({ id });
+  }
+
   /** Đếm số lượng danh mục con của danh mục hiện tại */
   async countChildCat(id: number): Promise<number> {
     const parentCategory = await this.categoryRepository.findOneByOrFail({ id });

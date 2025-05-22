@@ -19,6 +19,8 @@ export class Category extends CommonEntity {
   @Column({ nullable: true })
   imageUrl?: string;
 
+  mpath?: string;
+
   @TreeChildren({ cascade: true })
   children: Category[];
 

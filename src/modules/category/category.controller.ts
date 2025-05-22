@@ -15,12 +15,14 @@ import { RoleType } from '#/constants/role.constant';
 import { IdParam } from '#/common/decorators/id-param.decorator';
 import { Category } from './entities/category.entity';
 import { Public } from '../auth/decorators/public.decorator';
+import { ApiTags } from '@nestjs/swagger';
 
-@Controller('categories')
+@ApiTags('Category - Danh mục')
+@Public()
+@Controller('category')
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
-  @Public()
   @Get()
   async list(@Query() dto: CategoryQueryDto): Promise<Category[]> {
     return this.categoryService.getCategoryTree(dto);

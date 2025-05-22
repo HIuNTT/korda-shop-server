@@ -8,3 +8,13 @@ export function randomValue(
   }
   return result;
 }
+
+/** Xóa 1 list thuộc tính khỏi đối tượng
+ * @param data Đối tượng cần xóa thuộc tính
+ * @param keys Danh sách thuộc tính cần xóa của đối tượng
+ */
+export function deleteFields<TData, TKey extends keyof TData>(data: TData, keys: TKey[]) {
+  for (let key of keys) {
+    delete data[key];
+  }
+}

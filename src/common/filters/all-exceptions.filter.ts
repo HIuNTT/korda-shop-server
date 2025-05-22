@@ -41,6 +41,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
       return exception.getStatus();
     } else if (exception instanceof QueryFailedError) {
       return HttpStatus.INTERNAL_SERVER_ERROR;
+    } else {
+      return HttpStatus.INTERNAL_SERVER_ERROR;
     }
   }
 
@@ -51,6 +53,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
       return exception.message;
     } else if (exception instanceof QueryFailedError) {
       return exception.message;
+    } else {
+      return (exception as any).message || 'Internal server error';
     }
   }
 }
