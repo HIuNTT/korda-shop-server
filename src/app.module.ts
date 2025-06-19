@@ -15,6 +15,7 @@ import { CategoryModule } from './modules/category/category.module';
 import { ProductAttributeGroupModule } from './modules/product-attribute-group/product-attribute-group.module';
 import { ProductAttributeModule } from './modules/product-attribute/product-attribute.module';
 import { ProductModule } from './modules/product/product.module';
+import { UploadModule } from './modules/upload/upload.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { ProductModule } from './modules/product/product.module';
     ProductAttributeGroupModule,
     ProductAttributeModule,
     ProductModule,
+    UploadModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

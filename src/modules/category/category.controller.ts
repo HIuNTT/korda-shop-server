@@ -23,23 +23,35 @@ import { ApiTags } from '@nestjs/swagger';
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
-  @Get()
+  /**
+   * Lấy danh sách danh mục theo cấu trúc cây
+   */
+  @Get('get-category-tree')
   async list(@Query() dto: CategoryQueryDto): Promise<Category[]> {
     return this.categoryService.getCategoryTree(dto);
   }
 
+  /**
+   * Tạo mới một danh mục
+   */
   @Roles(RoleType.ADMIN)
   @Post()
   async create(@Body() dto: CategoryDto): Promise<void> {
     await this.categoryService.create(dto);
   }
 
+  /**
+   * Cập nhật một danh mục
+   */
   @Put(':id')
   @Roles(RoleType.ADMIN)
   async update(@IdParam() id: number, @Body() updateCategoryDto: CategoryDto): Promise<void> {
     await this.categoryService.update(id, updateCategoryDto);
   }
 
+  /**
+   * Xóa một danh mục
+   */
   @Delete(':id')
   @Roles(RoleType.ADMIN)
   async delete(@IdParam() id: number): Promise<void> {

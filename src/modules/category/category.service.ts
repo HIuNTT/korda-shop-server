@@ -4,7 +4,7 @@ import { Category } from './entities/category.entity';
 import { ILike, Not, TreeRepository } from 'typeorm';
 import { CategoryDto, CategoryQueryDto } from './dto/category.dto';
 import slugify from 'slugify';
-import { deleteEmptyChildren } from '#/utils/list-tree.util';
+import { deleteEmptyChildren, rootToTree } from '#/utils/list-tree.util';
 
 @Injectable()
 export class CategoryService {
@@ -97,13 +97,21 @@ export class CategoryService {
     for (const root of roots) {
       const child = await this.categoryRepository
         .createDescendantsQueryBuilder('category', 'categoryClosure', root)
+        .select([
+          'category.id',
+          'category.name',
+          'category.slug',
+          'category.orderNo',
+          'category.parentId',
+        ])
         .orderBy('category.order_no', 'ASC')
         .getMany();
-      root.children = child.filter((item) => item.parentId === root.id);
-      tree.push(root);
+
+      const rootWithChildren = rootToTree(child);
+      tree.push(rootWithChildren);
     }
 
-    deleteEmptyChildren(roots);
+    deleteEmptyChildren(tree);
 
     return tree;
   }

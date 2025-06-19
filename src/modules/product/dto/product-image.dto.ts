@@ -7,6 +7,11 @@ export class ProductImageDto {
   @IsString()
   url: string;
 
+  @ApiProperty({ description: 'Khóa của hình ảnh', example: 'hWTlYladnVfZLSSTSKhwC.jpg' })
+  @IsNotEmpty()
+  @IsString()
+  key: string;
+
   @ApiProperty({ name: 'order_no', description: 'Thứ tự hiển thị', example: 1 })
   @IsInt()
   @IsOptional()

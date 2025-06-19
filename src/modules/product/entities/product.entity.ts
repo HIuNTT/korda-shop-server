@@ -5,6 +5,7 @@ import { Column, Entity, JoinTable, ManyToMany, ManyToOne, OneToMany } from 'typ
 import { ProductImage } from './product-image.entity';
 import { ProductAttributeValue } from './product-attribute-value.entity';
 import { ApiProperty } from '@nestjs/swagger';
+import { ProductAttributeOption } from '#/modules/product-attribute/entites/product-attribute-option.entity';
 
 @Entity()
 export class Product extends CommonEntity {
@@ -31,37 +32,47 @@ export class Product extends CommonEntity {
   highlightFeatures: string;
 
   @Expose({ name: 'product_state' })
-  @Column({ type: 'text' })
+  @Column({ nullable: true, type: 'text' })
   @ApiProperty({
     name: 'product_state',
     description: 'Trạng thái sản phẩm',
   })
-  productState: string;
+  productState?: string;
 
   @Expose({ name: 'included_accessories' })
-  @Column({ type: 'text' })
+  @Column({ nullable: true, type: 'text' })
   @ApiProperty({
     name: 'included_accessories',
     description: 'Phụ kiện kèm theo',
   })
-  includedAccessories: string;
+  includedAccessories?: string;
 
   @Expose({ name: 'warranty_information' })
-  @Column({ type: 'text' })
+  @Column({ nullable: true, type: 'text' })
   @ApiProperty({
     name: 'warranty_information',
     description: 'Thông tin bảo hành',
   })
-  warrantyInformation: string;
+  warrantyInformation?: string;
 
   @Expose({ name: 'tax_vat' })
-  @Column({ default: true })
+  @Column({ nullable: true, default: true })
   @ApiProperty({
     name: 'tax_vat',
     description: 'Giá sản phẩm đã bao gồm thuế VAT hay chưa?',
     default: true,
   })
-  taxVat: boolean;
+  taxVat?: boolean;
+
+  @ApiProperty({ name: 'secondary_name', description: 'Tên phụ của sản phẩm' })
+  @Expose({ name: 'secondary_name' })
+  @Column({ nullable: true, type: 'text' })
+  secondaryName?: string;
+
+  @ApiProperty({ name: 'related_name', description: 'Tên liên quan của sản phẩm' })
+  @Expose({ name: 'related_name' })
+  @Column({ nullable: true })
+  relatedName?: string;
 
   @Column({ comment: 'Số lượng trong kho' })
   @ApiProperty({ description: 'Số lượng trong kho' })
@@ -88,10 +99,12 @@ export class Product extends CommonEntity {
 
   @Expose({ name: 'review_count' })
   @Column({ default: 0 })
+  @ApiProperty({ name: 'review_count', description: 'Số lượng đánh giá' })
   reviewCount: number;
 
   @Expose({ name: 'is_actived' })
   @Column({ default: true })
+  @ApiProperty({ name: 'is_actived', description: 'Trạng thái kích hoạt sản phẩm' })
   isActived: boolean;
 
   @ManyToMany(() => Category, {
@@ -107,4 +120,20 @@ export class Product extends CommonEntity {
 
   @OneToMany(() => ProductAttributeValue, (value) => value.product)
   attributes: ProductAttributeValue[];
+
+  @ManyToMany(() => ProductAttributeOption, {
+    cascade: true,
+  })
+  @JoinTable({
+    name: 'product_attribute_option_values',
+    joinColumn: {
+      name: 'product_id',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'option_id',
+      referencedColumnName: 'id',
+    },
+  })
+  attributeValueOptions: ProductAttributeOption[];
 }

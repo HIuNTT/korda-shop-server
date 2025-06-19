@@ -29,5 +29,5 @@ export class Category extends CommonEntity {
   parentId: number;
 
   @TreeParent({ onDelete: 'SET NULL' })
-  parent?: Category;
+  parent: Category;
 }

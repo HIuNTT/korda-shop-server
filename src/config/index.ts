@@ -1,4 +1,5 @@
 import { AppConfig, appRegToken, IAppConfig } from './app.config';
+import { AzureConfig, azureRegToken, IAzureConfig } from './azure.config';
 import { DatabaseConfig, dbRegToken, IDatabaseConfig } from './database.config';
 import { GoogleConfig, googleRegToken, IGoogleConfig } from './google.config';
 import { IMailerConfig, MailerConfig, mailerRegToken } from './mailer.config';
@@ -13,6 +14,7 @@ export * from './security.config';
 export * from './mailer.config';
 export * from './app.config';
 export * from './swagger.config';
+export * from './azure.config';
 
 export interface AllConfigType {
   [dbRegToken]: IDatabaseConfig;
@@ -22,6 +24,7 @@ export interface AllConfigType {
   [mailerRegToken]: IMailerConfig;
   [appRegToken]: IAppConfig;
   [swaggerRegToken]: ISwaggerConfig;
+  [azureRegToken]: IAzureConfig;
 }
 
 export default {
@@ -32,4 +35,5 @@ export default {
   MailerConfig,
   AppConfig,
   SwaggerConfig,
+  AzureConfig,
 };

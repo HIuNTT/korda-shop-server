@@ -1,3 +1,5 @@
+import { customAlphabet } from 'nanoid';
+
 export function randomValue(
   size = 16,
   dict = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
@@ -7,6 +9,14 @@ export function randomValue(
     result += dict.charAt(Math.floor(Math.random() * dict.length));
   }
   return result;
+}
+
+export function generateRandomValue(
+  size?: number,
+  placeholder = '1234567890qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM',
+): string {
+  const customNanoid = customAlphabet(placeholder, size);
+  return customNanoid();
 }
 
 /** Xóa 1 list thuộc tính khỏi đối tượng

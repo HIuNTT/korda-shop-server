@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Post, Put } from '@nestjs/common';
 import { ProductService } from './product.service';
-import { ProductDto } from './dto/product.dto';
+import { GetProductAttributesDto, ProductDto } from './dto/product.dto';
 import { Public } from '../auth/decorators/public.decorator';
 import { ApiTags } from '@nestjs/swagger';
 import { IdParam } from '#/common/decorators/id-param.decorator';
@@ -45,5 +45,16 @@ export class ProductController {
   @Delete(':id')
   async delete(@IdParam() id: number): Promise<void> {
     await this.productService.delete(id);
+  }
+
+  /**
+   *
+   * Lấy danh sách thuộc tính sản phẩm theo danh mục
+   * @remarks Danh sách ID danh mục được gửi lên phải là của các danh mục cấp cuối cùng
+   */
+  @Post('get-attributes')
+  @HttpCode(HttpStatus.OK)
+  async getAttributesByCategory(@Body() dto: GetProductAttributesDto) {
+    return await this.productService.getAttributesByCategory(dto);
   }
 }

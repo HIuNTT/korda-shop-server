@@ -3,31 +3,55 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ProductAttribute } from './entites/product-attribute.entity';
 import { Repository } from 'typeorm';
 import { ProductAttributeDto } from './product-attribute.dto';
+import { ProductAttributeGroupService } from '../product-attribute-group/product-attribute-group.service';
+import { InputType } from '#/constants/input-type.constant';
 
 @Injectable()
 export class ProductAttributeService {
   constructor(
     @InjectRepository(ProductAttribute)
     private readonly attributeRepository: Repository<ProductAttribute>,
+    private readonly productAttributeGroupService: ProductAttributeGroupService,
   ) {}
 
   async create(dto: ProductAttributeDto): Promise<void> {
-    const { groupId, ...rest } = dto;
-    await this.attributeRepository.insert({
+    const { groupId, inputType, options, ...rest } = dto;
+    const group = await this.productAttributeGroupService.findOne(groupId);
+
+    const orderedOptions = options?.map((option, index) => ({
+      ...option,
+      orderNo: index + 1,
+    }));
+
+    const attribute = this.attributeRepository.create({
       ...rest,
-      group: {
-        id: groupId,
-      },
+      group,
+      inputType,
+      ...((inputType === InputType.DROPDOWN || inputType === InputType.MULTIPLE_SELECTION) && {
+        attributeOptions: orderedOptions,
+      }),
     });
+    await this.attributeRepository.save(attribute);
   }
 
   async update(id: number, dto: ProductAttributeDto): Promise<void> {
-    const { groupId, ...rest } = dto;
-    await this.attributeRepository.update(id, {
+    const existAttribute = await this.attributeRepository.findOneByOrFail({ id });
+
+    const { groupId, inputType, options, ...rest } = dto;
+
+    const orderedOptions = options?.map((option, index) => ({
+      ...option,
+      orderNo: index + 1,
+    }));
+
+    await this.attributeRepository.save({
+      ...existAttribute,
       ...rest,
-      group: {
-        id: groupId,
-      },
+      group: await this.productAttributeGroupService.findOne(groupId),
+      inputType,
+      ...((inputType === InputType.DROPDOWN || inputType === InputType.MULTIPLE_SELECTION) && {
+        attributeOptions: orderedOptions,
+      }),
     });
   }
 

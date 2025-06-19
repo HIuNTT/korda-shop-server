@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, HttpCode, HttpStatus, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Post, Put } from '@nestjs/common';
 import { ProductAttributeService } from './product-attribute.service';
 import { ProductAttributeDto } from './product-attribute.dto';
 import { IdParam } from '#/common/decorators/id-param.decorator';
@@ -10,6 +10,11 @@ import { Public } from '../auth/decorators/public.decorator';
 @Controller('product-attribute')
 export class ProductAttributeController {
   constructor(private readonly productAttributeService: ProductAttributeService) {}
+
+  @Get(':id')
+  async info(@IdParam() id: number) {
+    return this.productAttributeService.findOne(id);
+  }
 
   /**
    * Tạo mới một thuộc tính sản phẩm
