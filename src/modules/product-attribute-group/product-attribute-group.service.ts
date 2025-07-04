@@ -48,6 +48,12 @@ export class ProductAttributeGroupService {
       },
       order: {
         orderNo: 'ASC',
+        attributes: {
+          orderNo: 'ASC',
+          attributeOptions: {
+            orderNo: 'ASC',
+          },
+        },
       },
       relations: {
         attributes: {

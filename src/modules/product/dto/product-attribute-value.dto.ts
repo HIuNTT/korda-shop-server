@@ -17,7 +17,7 @@ export class ProductAttributeValueDto {
   rawValue: string;
 }
 
-export class ProductAttributeDto {
+export class CreateProductAttributeDto {
   @ApiProperty({ name: 'attribute_id', description: 'ID của thuộc tính sản phẩm', example: 1 })
   @Expose({ name: 'attribute_id' })
   @IsInt()

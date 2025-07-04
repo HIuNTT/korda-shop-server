@@ -10,14 +10,17 @@ import { ProductAttributeValue } from './entities/product-attribute-value.entity
 import { ProductAttribute } from '../product-attribute/entites/product-attribute.entity';
 import { ProductImage } from './entities/product-image.entity';
 import { AttributeGroupHasMap, DefaultAttribute } from './interfaces/attribute.interface';
-import { Breadcrumb, ProductBySlug } from './interfaces/product.interface';
+import { Breadcrumb, ProductBySlug, ProductVersion, Variant } from './interfaces/product.interface';
 import { deleteFields } from '#/utils/tool.util';
 import { AzureConfig, IAzureConfig } from '#/config';
 import { UploadService } from '../upload/upload.service';
 import { ProductAttributeGroupService } from '../product-attribute-group/product-attribute-group.service';
 import { InputType } from '#/constants/input-type.constant';
 import { ProductAttributeOption } from '../product-attribute/entites/product-attribute-option.entity';
-import { ProductImageDto } from './dto/product-image.dto';
+import { ProductGroup } from '../product-group/product-group.entity';
+import { ProductVariant } from '../product-variant/entities/product-variant.entity';
+import { ProductVariantOption } from '../product-variant/entities/product-variant-option.entity';
+import { isEmpty } from 'lodash';
 
 @Injectable()
 export class ProductService {
@@ -26,6 +29,8 @@ export class ProductService {
     @InjectRepository(Product) private productRepository: Repository<Product>,
     @InjectRepository(Category) private categoryRepository: TreeRepository<Category>,
     @InjectRepository(ProductImage) private productImageRepository: Repository<ProductImage>,
+    @InjectRepository(ProductGroup) private productGroupRepository: Repository<ProductGroup>,
+    @InjectRepository(ProductVariant) private productVariantRepository: Repository<ProductVariant>,
     @InjectEntityManager() private entityManager: EntityManager,
     private uploadService: UploadService,
     private attributeGroupService: ProductAttributeGroupService,
@@ -38,19 +43,86 @@ export class ProductService {
     });
   }
 
-  async getProductById(id: number): Promise<ProductBySlug> {
+  async getProductBySlug(slug: string): Promise<ProductBySlug> {
     const product = await this.productRepository.findOne({
-      where: { id },
+      where: { slug },
       relations: {
         categories: true,
-        images: true,
         attributes: {
           attribute: {
             group: true,
           },
         },
+        attributeValueOptions: {
+          attribute: {
+            group: true,
+          },
+        },
+        group: true,
       },
     });
+
+    if (!product) {
+      throw new NotFoundException(`Sản phẩm không tồn tại`);
+    }
+
+    const productVersions: ProductVersion[] = [];
+
+    if (product.group?.id) {
+      const [productOfGroup] = await this.productGroupRepository.find({
+        where: { id: product.group?.id },
+        relations: {
+          products: true,
+        },
+        select: {
+          products: {
+            slug: true,
+            relatedName: true,
+            price: true,
+          },
+        },
+      });
+      if (productOfGroup) {
+        productVersions.push(
+          ...productOfGroup.products.map((p) => ({
+            name: p.relatedName,
+            slug: p.slug,
+            price: p.price,
+          })),
+        );
+      }
+    }
+
+    const variantList = await this.productVariantRepository.find({
+      where: { product: { id: product.id } },
+      relations: {
+        variantValues: true,
+      },
+    });
+
+    const minPrice = Math.min(...variantList.map((variant) => variant.price));
+
+    const variants: Variant[] = [];
+    let isCheck = false;
+    for (const variant of variantList) {
+      variants.push({
+        id: variant.id,
+        imageUrl: variant.imageUrl || '',
+        color: variant.variantValues?.[0].name || '', // Giả sử chỉ có một giá trị màu sắc
+        price: variant.price,
+        originalPrice: variant.originalPrice,
+        discountPercent:
+          variant.originalPrice > 0
+            ? Math.round(((variant.originalPrice - variant.price) / variant.originalPrice) * 100)
+            : 0,
+        stock: variant.stock,
+        isDefault: !isCheck && variant.price === minPrice,
+      });
+
+      if (variant.price === minPrice) {
+        isCheck = true;
+      }
+    }
 
     // Tìm danh mục có độ sâu lớn nhất
     const deepestCategory = product.categories?.reduce((acc, cur) => {
@@ -67,10 +139,6 @@ export class ProductService {
       }
     }, []);
 
-    if (!product) {
-      throw new NotFoundException(`Sản phẩm không tồn tại`);
-    }
-
     // Tính toán điểm đánh giá trung bình
     const aggregateRating =
       product.reviewCount > 0 ? Math.round((product.ratingSum / product.reviewCount) * 10) / 10 : 0;
@@ -83,17 +151,18 @@ export class ProductService {
 
     const listImages = await this.productImageRepository.find({
       select: {
+        key: true,
         url: true,
         orderNo: true,
       },
-      where: { product: { id } },
+      where: { product: { id: product.id } },
       order: { orderNo: 'ASC' },
     });
 
     const defaultAttributes: DefaultAttribute[] = [];
     const attributesMap = new Map<number, AttributeGroupHasMap>();
 
-    // Format lại danh sách thuộc tính được bọc bởi tình nhóm thuộc tính
+    // Format lại danh sách thuộc tính thuộc loại text field, textarea
     product.attributes.forEach((attribute) => {
       const group = attribute.attribute.group;
       const attributeId = attribute.attributeId;
@@ -101,7 +170,7 @@ export class ProductService {
       const attributeName = attribute.attribute.name;
       const attributeOrderNo = attribute.attribute.orderNo;
 
-      const isDefaultAttribute = attribute.attribute.isSelected;
+      const isDefaultAttribute = attribute.attribute.isSelected && attribute.attribute.isDisplay;
       if (isDefaultAttribute) {
         defaultAttributes.push({
           name: attributeName,
@@ -110,7 +179,7 @@ export class ProductService {
         });
       }
 
-      if (!attributesMap.has(group.id)) {
+      if (!attributesMap.has(group.id) && attribute.attribute.isDisplay) {
         attributesMap.set(group.id, {
           groupName: group.name,
           orderNo: group.orderNo,
@@ -118,13 +187,73 @@ export class ProductService {
         });
       }
 
-      attributesMap.get(group.id).attributes.push({
-        id: attributeId,
-        name: attributeName,
-        orderNo: attributeOrderNo,
-        value: attributeValue,
-      });
+      if (attribute.attribute.isDisplay) {
+        attributesMap.get(group.id).attributes.push({
+          id: attributeId,
+          name: attributeName,
+          orderNo: attributeOrderNo,
+          value: attributeValue,
+        });
+      }
     });
+
+    const attributeOptionTypes = new Map<
+      number,
+      {
+        attributeId: number;
+        attributeName: string;
+        attributeOrderNo: number;
+        isSelected: boolean;
+        groupId: number;
+        values: string[];
+      }
+    >();
+    // Format lại danh sách thuộc tính thuộc loại dropdown, multiple selection, gộp các giá trị của thuộc tính vào một mảng
+    product.attributeValueOptions.forEach((attributeOption) => {
+      const group = attributeOption.attribute.group;
+      const attributeId = attributeOption.attribute.id;
+      const optionName = attributeOption.name;
+
+      if (!attributeOptionTypes.has(attributeId) && attributeOption.attribute.isDisplay) {
+        attributeOptionTypes.set(attributeId, {
+          attributeId: attributeId,
+          attributeName: attributeOption.attribute.name,
+          attributeOrderNo: attributeOption.attribute.orderNo,
+          isSelected: attributeOption.attribute.isSelected,
+          groupId: group.id,
+          values: [],
+        });
+      }
+
+      if (attributeOption.attribute.isDisplay) {
+        attributeOptionTypes.get(attributeId).values.push(optionName);
+      }
+
+      if (!attributesMap.has(group.id) && attributeOption.attribute.isDisplay) {
+        attributesMap.set(group.id, {
+          groupName: group.name,
+          orderNo: group.orderNo,
+          attributes: [],
+        });
+      }
+    });
+
+    for (const att of attributeOptionTypes.values()) {
+      attributesMap.get(att.groupId).attributes.push({
+        id: att.attributeId,
+        name: att.attributeName,
+        orderNo: att.attributeOrderNo,
+        value: att.values.join(', '),
+      });
+
+      if (att.isSelected) {
+        defaultAttributes.push({
+          name: att.attributeName,
+          value: att.values.join(', '),
+          orderNo: att.attributeOrderNo,
+        });
+      }
+    }
 
     // Sắp xếp danh sách thuộc tính theo thứ tự hiển thị
     const resultAttributes = Array.from(attributesMap.values())
@@ -134,16 +263,24 @@ export class ProductService {
       })
       .sort((a, b) => a.orderNo - b.orderNo);
 
-    deleteFields(product, ['ratingSum', 'attributes']);
+    deleteFields(product, [
+      'ratingSum',
+      'attributes',
+      'attributeValueOptions',
+      'group',
+      'variants',
+    ]);
 
     return new ProductBySlug({
       ...product,
       discountPercent,
       aggregateRating,
       images: listImages,
-      defaultAttributes: defaultAttributes.sort((a, b) => a.orderNo - b.orderNo),
+      defaultAttributes,
       attributeItems: resultAttributes,
       breadcrumbs,
+      productVersions,
+      variants,
     });
   }
 
@@ -153,6 +290,9 @@ export class ProductService {
     images,
     attributes,
     description,
+    variantValues,
+    variationList,
+    groupId,
     ...rest
   }: ProductDto): Promise<void> {
     const productImages = images.map((image, idx) => ({
@@ -180,6 +320,36 @@ export class ProductService {
 
     const newDescription = $.root().html();
 
+    let price: number;
+    let originalPrice: number;
+    let stock: number;
+
+    if (isEmpty(variationList)) {
+      price = variantValues[0].price;
+      originalPrice = variantValues[0].originalPrice;
+      stock = variantValues[0].stock;
+    }
+    if (!isEmpty(variationList) && !isEmpty(variantValues)) {
+      let minPrice = variantValues[0].price;
+      let minOriginalPrice = variantValues[0].originalPrice;
+      let totalStock = variantValues[0].stock;
+
+      for (let i = 1; i < variantValues.length; i++) {
+        const variant = variantValues[i];
+        if (variant.price < minPrice) {
+          minPrice = variant.price;
+        }
+        if (variant.originalPrice < minOriginalPrice) {
+          minOriginalPrice = variant.originalPrice;
+        }
+        totalStock += variant.stock;
+      }
+
+      price = minPrice;
+      originalPrice = minOriginalPrice;
+      stock = totalStock;
+    }
+
     await this.entityManager.transaction(async (manager) => {
       const product = manager.create(Product, {
         name,
@@ -187,8 +357,12 @@ export class ProductService {
         ...rest,
         description: newDescription,
         categories: await this.categoryRepository.findBy({ id: In(categoryIds) }),
+        group: groupId && (await this.productGroupRepository.findOneBy({ id: groupId })),
         images: productImages,
         thumbnailUrl: productImages[0].url,
+        price,
+        originalPrice,
+        stock,
       });
 
       const savedProduct = await manager.save(Product, product);
@@ -228,9 +402,47 @@ export class ProductService {
       await manager.save(ProductAttributeValue, attributeValues);
       await manager.save(Product, { ...savedProduct, attributeValueOptions });
 
+      // Lưu các biến thể sản phẩm nếu có
+      const variantImageKeys: string[] = [];
+      const variants: ProductVariant[] = [];
+      if (!isEmpty(variationList) && !isEmpty(variantValues)) {
+        for (const variantValue of variantValues) {
+          const variant = new ProductVariant();
+          variant.product = savedProduct;
+          variant.price = variantValue.price;
+          variant.originalPrice = variantValue.originalPrice;
+          variant.stock = variantValue.stock;
+          variant.imageUrl = this.getImageUrl(variantValue.image.key);
+
+          variantImageKeys.push(variantValue.image.key);
+
+          const varCombIds = variantValue.indexMap.map(
+            (idxMap, index) => variationList[index].valueList[idxMap].valueId,
+          );
+          const variantValues = await manager.findBy(ProductVariantOption, { id: In(varCombIds) });
+          variant.variantValues = variantValues;
+          variant.name = [product.name, ...variantValues.map((v) => v.name)].join(' - ');
+
+          variants.push(variant);
+        }
+      }
+      if (isEmpty(variationList) && !isEmpty(variantValues)) {
+        const variant = new ProductVariant();
+        variant.product = savedProduct;
+        variant.price = price;
+        variant.originalPrice = originalPrice;
+        variant.stock = stock;
+        variant.name = savedProduct.name;
+
+        variants.push(variant);
+      }
+
+      await manager.save(ProductVariant, variants);
+
       await Promise.all([
         ...productImages.map((image) => this.uploadService.moveToPermanentContainer(image.key)),
         ...descriptionImageKeys.map((key) => this.uploadService.moveToPermanentContainer(key)),
+        ...variantImageKeys.map((key) => this.uploadService.moveToPermanentContainer(key)),
       ]);
     });
   }

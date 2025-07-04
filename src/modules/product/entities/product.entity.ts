@@ -6,6 +6,8 @@ import { ProductImage } from './product-image.entity';
 import { ProductAttributeValue } from './product-attribute-value.entity';
 import { ApiProperty } from '@nestjs/swagger';
 import { ProductAttributeOption } from '#/modules/product-attribute/entites/product-attribute-option.entity';
+import { ProductVariant } from '#/modules/product-variant/entities/product-variant.entity';
+import { ProductGroup } from '#/modules/product-group/product-group.entity';
 
 @Entity()
 export class Product extends CommonEntity {
@@ -74,7 +76,7 @@ export class Product extends CommonEntity {
   @Column({ nullable: true })
   relatedName?: string;
 
-  @Column({ comment: 'Số lượng trong kho' })
+  @Column({ comment: 'Số lượng trong kho', default: 0 })
   @ApiProperty({ description: 'Số lượng trong kho' })
   stock: number;
 
@@ -113,6 +115,12 @@ export class Product extends CommonEntity {
   @JoinTable()
   categories: Category[];
 
+  @ManyToOne(() => ProductGroup, (group) => group.products, {
+    cascade: true,
+    onDelete: 'SET NULL',
+  })
+  group: ProductGroup;
+
   @OneToMany(() => ProductImage, (image) => image.product, {
     cascade: true,
   })
@@ -136,4 +144,7 @@ export class Product extends CommonEntity {
     },
   })
   attributeValueOptions: ProductAttributeOption[];
+
+  @OneToMany(() => ProductVariant, (variant) => variant.product)
+  variants: ProductVariant[];
 }

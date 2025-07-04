@@ -34,7 +34,7 @@ export class UploadController {
     FileInterceptor('file', {
       limits: {
         files: 1,
-        fileSize: 2 * 1024 * 1024, // 2MB
+        fileSize: 10 * 1024 * 1024, // 2MB
       },
       fileFilter(req, file, callback) {
         if (!['png', 'jpg', 'jpeg'].includes(extname(file.originalname).slice(1))) {

@@ -16,6 +16,9 @@ import { ProductAttributeGroupModule } from './modules/product-attribute-group/p
 import { ProductAttributeModule } from './modules/product-attribute/product-attribute.module';
 import { ProductModule } from './modules/product/product.module';
 import { UploadModule } from './modules/upload/upload.module';
+import { ProductVariantModule } from './modules/product-variant/product-variant.module';
+import { ProductGroupModule } from './modules/product-group/product-group.module';
+import { CartModule } from './modules/cart/cart.module';
 
 @Module({
   imports: [
@@ -29,9 +32,12 @@ import { UploadModule } from './modules/upload/upload.module';
     SharedModule,
     AuthModule,
     CategoryModule,
+    ProductModule,
+    ProductGroupModule,
     ProductAttributeGroupModule,
     ProductAttributeModule,
-    ProductModule,
+    ProductVariantModule,
+    CartModule,
     UploadModule,
   ],
   providers: [

@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Post, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Put,
+} from '@nestjs/common';
 import { ProductService } from './product.service';
 import { GetProductAttributesDto, ProductDto } from './dto/product.dto';
 import { Public } from '../auth/decorators/public.decorator';
@@ -14,11 +24,11 @@ export class ProductController {
   constructor(private productService: ProductService) {}
 
   /**
-   * Lấy thông tin một sản phẩm
+   * Lấy thông tin một sản phẩm bằng slug
    */
-  @Get(':id')
-  async getProductById(@IdParam() id: number): Promise<ProductBySlug> {
-    return await this.productService.getProductById(id);
+  @Get(':slug')
+  async getProductBySlug(@Param('slug') slug: string): Promise<ProductBySlug> {
+    return await this.productService.getProductBySlug(slug);
   }
 
   /**

@@ -11,7 +11,56 @@ export class Breadcrumb {
   name: string;
 }
 
-export class ProductBySlug extends OmitType(Product, ['attributes', 'ratingSum' as const]) {
+export class ProductVersion {
+  @ApiProperty({ description: 'Slug của sản phẩm' })
+  slug: string;
+
+  @ApiProperty({ description: 'Tên phiên bản của sản phẩm' })
+  name: string;
+
+  @ApiProperty({ description: 'Giá hiện tại của sản phẩm' })
+  price: number;
+}
+
+export class Variant {
+  @ApiProperty({ description: 'ID của biến thể sản phẩm' })
+  id: number;
+
+  @ApiProperty({ description: 'Url của hình ảnh biến thể sản phẩm' })
+  @Expose({ name: 'image_url' })
+  imageUrl: string;
+
+  @ApiProperty({
+    description: 'Màu sắc của biến thể sản phẩm (Trường hợp chỉ có 1 biến thể màu sắc)',
+  })
+  color: string;
+
+  @ApiProperty({ description: 'Giá hiện tại sản phẩm' })
+  price: number;
+
+  @ApiProperty({ description: 'Giá gốc của sản phẩm' })
+  @Expose({ name: 'original_price' })
+  originalPrice: number;
+
+  @ApiProperty({ description: 'Phần trăm giảm giá' })
+  @Expose({ name: 'discount_percent' })
+  discountPercent: number;
+
+  @ApiProperty({ description: 'Số lượng tồn kho của biến thể sản phẩm' })
+  stock: number;
+
+  @ApiProperty({ description: 'Là mặc định hay không?' })
+  @Expose({ name: 'is_default' })
+  isDefault: boolean;
+}
+
+export class ProductBySlug extends OmitType(Product, [
+  'attributes',
+  'ratingSum',
+  'attributeValueOptions',
+  'variants',
+  'group' as const,
+]) {
   @ApiProperty({ name: 'discount_percent', description: 'Phần trăm giảm giá' })
   @Expose({ name: 'discount_percent' })
   discountPercent: number;
@@ -41,6 +90,19 @@ export class ProductBySlug extends OmitType(Product, ['attributes', 'ratingSum' 
   @ApiProperty({ description: 'Breadcrumb', type: [Breadcrumb] })
   @Type(() => Breadcrumb)
   breadcrumbs: Breadcrumb[];
+
+  @ApiProperty({
+    name: 'product_versions',
+    description: 'Danh sách phiên bản sản phẩm',
+    type: [ProductVersion],
+  })
+  @Expose({ name: 'product_versions' })
+  @Type(() => ProductVersion)
+  productVersions: ProductVersion[];
+
+  @ApiProperty({ description: 'Danh sách biến thể sản phẩm', type: [Variant] })
+  @Type(() => Variant)
+  variants: Variant[];
 
   constructor(partial?: Partial<ProductBySlug>) {
     super();

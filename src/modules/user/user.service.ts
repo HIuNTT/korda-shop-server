@@ -29,6 +29,13 @@ export class UserService {
     });
   }
 
+  async findUserById(userId: number): Promise<User | null> {
+    return this.userRepository.findOne({
+      where: { id: userId, isActived: true },
+      relations: ['profile'],
+    });
+  }
+
   async createUser({
     fullName,
     avatarUrl,

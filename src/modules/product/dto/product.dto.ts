@@ -4,16 +4,16 @@ import {
   IsBoolean,
   IsInt,
   IsNotEmpty,
-  IsNumber,
   IsOptional,
   IsString,
   Min,
   ValidateNested,
 } from 'class-validator';
-import { ProductAttributeDto } from './product-attribute-value.dto';
+import { CreateProductAttributeDto } from './product-attribute-value.dto';
 import { Expose, Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { ProductImageDto } from './product-image.dto';
+import { ProductVariantValuesDto, ProductVariationListDto } from './product-variant.dto';
 
 export class ProductDto {
   @ApiProperty({ description: 'Tên sản phẩm' })
@@ -91,27 +91,23 @@ export class ProductDto {
   @IsOptional()
   relatedName?: string;
 
-  @ApiProperty({ description: 'Số lượng sản phẩm trong kho' })
-  @IsNumber()
-  @Min(0)
-  stock: number;
-
-  @ApiProperty({ description: 'Giá sản phẩm' })
-  @IsNumber()
-  price: number;
-
-  @ApiProperty({ description: 'Giá gốc sản phẩm', name: 'original_price' })
-  @Expose({ name: 'original_price' })
-  @IsNumber()
-  @IsOptional()
-  originalPrice?: number;
-
   @ApiProperty({ description: 'Danh sách ID của danh mục', name: 'category_ids', type: [Number] })
   @Expose({ name: 'category_ids' })
   @IsArray()
   @ArrayNotEmpty()
   @IsInt({ each: true })
   categoryIds: number[];
+
+  @ApiProperty({
+    name: 'group_id',
+    description:
+      'ID của nhóm sản phẩm, được dùng để nhóm các sản phẩm cùng loại nhưng khác CPU, RAM, bộ nhớ - phân thành các phiên bản khác nhau',
+  })
+  @Expose({ name: 'group_id' })
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  groupId?: number;
 
   @ApiProperty({ description: 'Danh sách key hình ảnh sản phẩm', type: [ProductImageDto] })
   @IsArray()
@@ -120,12 +116,31 @@ export class ProductDto {
   @Type(() => ProductImageDto)
   images: ProductImageDto[];
 
-  @ApiProperty({ description: 'Danh sách thuộc tính sản phẩm', type: [ProductAttributeDto] })
+  @ApiProperty({ description: 'Danh sách thuộc tính sản phẩm', type: [CreateProductAttributeDto] })
   @IsArray()
   @ArrayNotEmpty()
   @ValidateNested({ each: true })
-  @Type(() => ProductAttributeDto)
-  attributes: ProductAttributeDto[];
+  @Type(() => CreateProductAttributeDto)
+  attributes: CreateProductAttributeDto[];
+
+  @ApiProperty({
+    name: 'variant_values',
+    description: 'Danh sách các biến thể của sản phẩm gồm giá, kho hàng, ảnh',
+  })
+  @Expose({ name: 'variant_values' })
+  @IsArray()
+  @ArrayNotEmpty()
+  @ValidateNested({ each: true })
+  @Type(() => ProductVariantValuesDto)
+  variantValues: ProductVariantValuesDto[];
+
+  @ApiProperty({ name: 'variation_list', description: 'Danh sách các loại biến thể của sản phẩm' })
+  @Expose({ name: 'variation_list' })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ProductVariationListDto)
+  @IsOptional()
+  variationList?: ProductVariationListDto[];
 }
 
 export class GetProductAttributesDto {
