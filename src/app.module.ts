@@ -4,7 +4,7 @@ import config from './config';
 import { DatabaseModule } from './shared/database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { SharedModule } from './shared/shared.module';
-import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, Reflector } from '@nestjs/core';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
@@ -19,6 +19,7 @@ import { UploadModule } from './modules/upload/upload.module';
 import { ProductVariantModule } from './modules/product-variant/product-variant.module';
 import { ProductGroupModule } from './modules/product-group/product-group.module';
 import { CartModule } from './modules/cart/cart.module';
+import { LocationModule } from './modules/location/location.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { CartModule } from './modules/cart/cart.module';
     ProductAttributeModule,
     ProductVariantModule,
     CartModule,
+    LocationModule,
     UploadModule,
   ],
   providers: [
@@ -45,7 +47,11 @@ import { CartModule } from './modules/cart/cart.module';
 
     { provide: APP_INTERCEPTOR, useClass: ClassSerializerInterceptor },
     { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
-    { provide: APP_INTERCEPTOR, useFactory: () => new TimeoutInterceptor(15 * 1000) },
+    {
+      provide: APP_INTERCEPTOR,
+      useFactory: (reflector: Reflector) => new TimeoutInterceptor(15 * 1000, reflector),
+      inject: [Reflector],
+    },
 
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
