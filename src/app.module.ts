@@ -20,6 +20,7 @@ import { ProductVariantModule } from './modules/product-variant/product-variant.
 import { ProductGroupModule } from './modules/product-group/product-group.module';
 import { CartModule } from './modules/cart/cart.module';
 import { LocationModule } from './modules/location/location.module';
+import { AccountModule } from './modules/account/account.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { LocationModule } from './modules/location/location.module';
     DatabaseModule,
     SharedModule,
     AuthModule,
+    AccountModule,
     CategoryModule,
     ProductModule,
     ProductGroupModule,
