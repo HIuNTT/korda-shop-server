@@ -297,7 +297,7 @@ export class ProductService {
   }: ProductDto): Promise<void> {
     const productImages = images.map((image, idx) => ({
       key: image.key,
-      url: this.getImageUrl(image.key),
+      url: this.uploadService.getImageUrl(image.key),
       orderNo: idx + 1,
     }));
 
@@ -311,9 +311,9 @@ export class ProductService {
     const $img = $('img');
     $img.each((_, element) => {
       const src = $(element).attr('src');
-      if (src && src.startsWith(this.getPrefixTempImageUrl())) {
+      if (src && src.startsWith(this.uploadService.getPrefixTempImageUrl())) {
         const key = src.split('/').pop();
-        $(element).attr('src', this.getImageUrl(key));
+        $(element).attr('src', this.uploadService.getImageUrl(key));
         descriptionImageKeys.push(key);
       }
     });
@@ -412,7 +412,7 @@ export class ProductService {
           variant.price = variantValue.price;
           variant.originalPrice = variantValue.originalPrice;
           variant.stock = variantValue.stock;
-          variant.imageUrl = this.getImageUrl(variantValue.image.key);
+          variant.imageUrl = this.uploadService.getImageUrl(variantValue.image.key);
 
           variantImageKeys.push(variantValue.image.key);
 
@@ -464,7 +464,7 @@ export class ProductService {
       seenImages.set(image.key, 1); // add image key to seen map
       return {
         key: image.key,
-        url: this.getImageUrl(image.key),
+        url: this.uploadService.getImageUrl(image.key),
         orderNo: idx + 1,
       };
     });
@@ -488,13 +488,13 @@ export class ProductService {
     const $img = $('img');
     $img.each((_, element) => {
       const src = $(element).attr('src');
-      if (src && src.startsWith(this.getPrefixTempImageUrl())) {
+      if (src && src.startsWith(this.uploadService.getPrefixTempImageUrl())) {
         const key = src.split('/').pop();
-        $(element).attr('src', this.getImageUrl(key));
+        $(element).attr('src', this.uploadService.getImageUrl(key));
         descriptionImageKeys.push(key);
         seenDescImageKeys.set(key, 1); // add image key to seen map
       }
-      if (src && src.startsWith(this.getPrefixPermanentImageUrl())) {
+      if (src && src.startsWith(this.uploadService.getPrefixPermanentImageUrl())) {
         // Nếu ảnh đã là permanent thì không cần thay đổi src
         const key = src.split('/').pop();
         seenDescImageKeys.set(key, 1); // add image key to seen map
@@ -509,7 +509,7 @@ export class ProductService {
     const $oldImg = $oldDesc('img');
     $oldImg.each((_, element) => {
       const src = $oldDesc(element).attr('src');
-      if (src && src.startsWith(this.getPrefixPermanentImageUrl())) {
+      if (src && src.startsWith(this.uploadService.getPrefixPermanentImageUrl())) {
         const key = src.split('/').pop();
         oldDescImageKeys.push(key);
       }
@@ -565,7 +565,7 @@ export class ProductService {
 
       await Promise.all([
         ...productImages
-          .filter((image) => image.key.startsWith(this.getPrefixTempImageUrl()))
+          .filter((image) => image.key.startsWith(this.uploadService.getPrefixTempImageUrl()))
           .map((image) => this.uploadService.moveToPermanentContainer(image.key)),
         ...descriptionImageKeys.map((key) => this.uploadService.moveToPermanentContainer(key)),
 
@@ -600,18 +600,5 @@ export class ProductService {
     }
 
     return await this.attributeGroupService.getAttributeByCategory(categoryIdList);
-  }
-
-  /** Get permanent image url */
-  private getImageUrl(key: string): string {
-    return `https://${this.azureConfig.accountName}.blob.${this.azureConfig.endpointSuffix}/${this.azureConfig.imagesContainerName}/${key}`;
-  }
-
-  private getPrefixTempImageUrl() {
-    return `https://${this.azureConfig.accountName}.blob.${this.azureConfig.endpointSuffix}/${this.azureConfig.tempContainerName}/`;
-  }
-
-  private getPrefixPermanentImageUrl() {
-    return `https://${this.azureConfig.accountName}.blob.${this.azureConfig.endpointSuffix}/${this.azureConfig.imagesContainerName}/`;
   }
 }

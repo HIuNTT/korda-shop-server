@@ -1,9 +1,9 @@
 import { CommonEntity } from '#/common/entity/common.entity';
 import { Product } from '#/modules/product/entities/product.entity';
-import { Column, Entity, JoinTable, ManyToMany, ManyToOne, Relation } from 'typeorm';
+import { Column, Entity, JoinTable, ManyToMany, ManyToOne, OneToMany, Relation } from 'typeorm';
 import { ProductVariantOption } from './product-variant-option.entity';
 import { Exclude, Expose } from 'class-transformer';
-import { ApiHideProperty } from '@nestjs/swagger';
+import { OrderItem } from '#/modules/order/entities/order-item.entity';
 
 @Entity()
 export class ProductVariant extends CommonEntity {
@@ -41,4 +41,7 @@ export class ProductVariant extends CommonEntity {
     inverseJoinColumn: { name: 'option_id', referencedColumnName: 'id' },
   })
   variantValues: ProductVariantOption[];
+
+  @OneToMany(() => OrderItem, (item) => item.product)
+  orderItems: OrderItem[];
 }

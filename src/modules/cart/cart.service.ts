@@ -243,4 +243,18 @@ export class CartService {
       prices,
     });
   }
+
+  async getCartItems(userId: number, ids: string[]): Promise<CartItem[]> {
+    return await this.cartItemRepository.find({
+      where: { id: In(ids), cart: { user: { id: userId } } },
+      relations: {
+        product: {
+          product: true,
+        },
+      },
+      order: {
+        updatedAt: 'DESC',
+      },
+    });
+  }
 }

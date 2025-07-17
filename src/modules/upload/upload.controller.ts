@@ -9,7 +9,7 @@ import { UploadService } from './upload.service';
 import { Public } from '../auth/decorators/public.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { extname } from 'node:path';
-import { ApiBody, ApiConsumes } from '@nestjs/swagger';
+import { ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 
 @Public()
@@ -30,6 +30,7 @@ export class UploadController {
       },
     },
   })
+  @ApiOperation({ summary: 'Tải lên hình ảnh' })
   @UseInterceptors(
     FileInterceptor('file', {
       limits: {
@@ -46,6 +47,38 @@ export class UploadController {
   )
   @Post('image')
   async uploadImage(@UploadedFile() file: Express.Multer.File) {
-    return this.uploadService.uploadImage(file);
+    return this.uploadService.uploadFile(file);
+  }
+
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiOperation({ summary: 'Tải lên icon' })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: {
+        files: 1,
+        fileSize: 10 * 1024 * 1024, // 10MB
+      },
+      fileFilter(req, file, callback) {
+        if (!['png', 'jpg', 'jpeg', 'svg'].includes(extname(file.originalname).slice(1))) {
+          throw new BadRequestException('Chỉ cho phép tải lên các tệp hình ảnh, svg');
+        }
+        callback(null, true);
+      },
+    }),
+  )
+  @Post('icon')
+  async uploadIcon(@UploadedFile() file: Express.Multer.File) {
+    return this.uploadService.uploadFile(file);
   }
 }

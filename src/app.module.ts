@@ -21,6 +21,8 @@ import { ProductGroupModule } from './modules/product-group/product-group.module
 import { CartModule } from './modules/cart/cart.module';
 import { LocationModule } from './modules/location/location.module';
 import { AccountModule } from './modules/account/account.module';
+import { PaymentModule } from './modules/payment/payment.module';
+import { OrderModule } from './modules/order/order.module';
 
 @Module({
   imports: [
@@ -41,7 +43,9 @@ import { AccountModule } from './modules/account/account.module';
     ProductAttributeModule,
     ProductVariantModule,
     CartModule,
+    OrderModule,
     LocationModule,
+    PaymentModule,
     UploadModule,
   ],
   providers: [

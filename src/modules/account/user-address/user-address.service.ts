@@ -14,6 +14,17 @@ export class UserAddressService {
     @InjectEntityManager() private entityManager: EntityManager,
   ) {}
 
+  async findOneById(userId: number, addressId: number): Promise<UserAddress> {
+    return await this.userAddressRepository.findOneOrFail({
+      where: { id: addressId, user: { id: userId } },
+      relations: {
+        province: true,
+        district: true,
+        ward: true,
+      },
+    });
+  }
+
   async getAll(userId: number): Promise<UserAddressRes[]> {
     const addressList = await this.userAddressRepository.find({
       where: { user: { id: userId } },
