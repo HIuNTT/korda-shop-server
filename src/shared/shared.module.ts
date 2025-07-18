@@ -2,6 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { RedisModule } from './redis/redis.module';
 import { MailerModule } from './mailer/mailer.module';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { VnpayModule } from './vnpay/vnpay.module';
 
 @Global()
 @Module({
@@ -18,7 +19,8 @@ import { ThrottlerModule } from '@nestjs/throttler';
     }),
     RedisModule,
     MailerModule,
+    VnpayModule,
   ],
-  exports: [RedisModule, MailerModule],
+  exports: [RedisModule, MailerModule, VnpayModule],
 })
 export class SharedModule {}

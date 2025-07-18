@@ -77,6 +77,9 @@ importers:
       nanoid:
         specifier: ^3.3.4
         version: 3.3.4
+      nestjs-vnpay:
+        specifier: ^1.0.1
+        version: 1.0.1(@nestjs/common@11.0.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(vnpay@2.4.0)
       nodemailer:
         specifier: ^6.10.1
         version: 6.10.1
@@ -101,6 +104,9 @@ importers:
       typeorm:
         specifier: ^0.3.22
         version: 0.3.22(ioredis@5.6.1)(pg@8.14.1)(reflect-metadata@0.2.2)(ts-node@10.9.2(@swc/core@1.11.21)(@types/node@22.14.1)(typescript@5.8.3))
+      vnpay:
+        specifier: ^2.4.0
+        version: 2.4.0
     devDependencies:
       '@nestjs/cli':
         specifier: ^11.0.6
@@ -3634,6 +3640,12 @@ packages:
   neo-async@2.6.2:
     resolution: {integrity: sha512-Yd3UES5mWCSqR+qNT93S3UoYUkqAZ9lLg8a7g9rimsWmYGK8cVToA4/sF3RrshdyV3sAGMXVUmpMYOw+dLpOuw==}
 
+  nestjs-vnpay@1.0.1:
+    resolution: {integrity: sha512-venS1m8pKJon8Czy3Jmq+emSOW5o2XefRVSbNzeTh7GVT0hxaGNttfCPFx37xlTC5nTffHlMxDM8fPtma8yQwQ==}
+    peerDependencies:
+      '@nestjs/common': ^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0
+      vnpay: ^1.0.0 || ^2.1.1
+
   nice-try@1.0.5:
     resolution: {integrity: sha512-1nh45deeb5olNY7eX82BkPO7SSxR5SSYJiPTrTdFUVYwAl8CKMA5N9PjTYkHiRjisVcxcQ1HXdLhx2qxxJzLNQ==}
 
@@ -4779,6 +4791,9 @@ packages:
   vary@1.1.2:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
     engines: {node: '>= 0.8'}
+
+  vnpay@2.4.0:
+    resolution: {integrity: sha512-3KEdRjyORiWs/nO6WsxBt8C+LKhD1mdFJjUeHB7HSP3vd5BWNmnSMN9zRBYVeRgyCQ5r4Y2vLKPumrw/NgxL2A==}
 
   void-elements@3.1.0:
     resolution: {integrity: sha512-Dhxzh5HZuiHQhbvTW9AMetFfBHDMYpo23Uo9btPXgdYP+3T5S+p+jgNy7spra+veYhBP2dCSgxR/i2Y02h5/6w==}
@@ -9282,6 +9297,11 @@ snapshots:
 
   neo-async@2.6.2: {}
 
+  nestjs-vnpay@1.0.1(@nestjs/common@11.0.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(vnpay@2.4.0):
+    dependencies:
+      '@nestjs/common': 11.0.19(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      vnpay: 2.4.0
+
   nice-try@1.0.5:
     optional: true
 
@@ -10427,6 +10447,10 @@ snapshots:
   validator@13.15.0: {}
 
   vary@1.1.2: {}
+
+  vnpay@2.4.0:
+    dependencies:
+      dayjs: 1.11.13
 
   void-elements@3.1.0:
     optional: true

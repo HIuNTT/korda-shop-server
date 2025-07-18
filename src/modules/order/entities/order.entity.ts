@@ -36,9 +36,9 @@ export class Order extends CommonEntity {
 
   @Expose({ name: 'shipping_address' })
   @OneToOne(() => ShippingAddress, { cascade: true })
-  @JoinColumn()
   shippingAddress: ShippingAddress;
 
+  @Expose({ name: 'status_items' })
   @OneToMany(() => OrderStatusItem, (item) => item.order)
   statusItems: OrderStatusItem[];
 
@@ -46,6 +46,7 @@ export class Order extends CommonEntity {
   @OneToMany(() => OrderItem, (item) => item.order)
   orderItems: OrderItem[];
 
+  @Expose({ name: 'payment_method' })
   @ManyToOne(() => PaymentMethod)
   paymentMethod: PaymentMethod;
 }

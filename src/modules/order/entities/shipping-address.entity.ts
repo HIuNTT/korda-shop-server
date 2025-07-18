@@ -5,7 +5,8 @@ import { Province } from '#/modules/location/entities/province.entity';
 import { Ward } from '#/modules/location/entities/ward.entity';
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
-import { Column, Entity, ManyToOne } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToOne, Relation } from 'typeorm';
+import { Order } from './order.entity';
 
 @Entity()
 export class ShippingAddress extends CommonEntity {
@@ -53,4 +54,10 @@ export class ShippingAddress extends CommonEntity {
     onDelete: 'SET NULL',
   })
   ward: Ward;
+
+  @OneToOne(() => Order, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn()
+  order: Relation<Order>;
 }

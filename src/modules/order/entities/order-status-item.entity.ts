@@ -18,7 +18,9 @@ export class OrderStatusItem {
   @CreateDateColumn()
   createdAt: Date;
 
-  @ManyToOne(() => Order)
+  @ManyToOne(() => Order, {
+    onDelete: 'CASCADE',
+  })
   order: Relation<Order>;
 
   @ManyToOne(() => OrderStatus)

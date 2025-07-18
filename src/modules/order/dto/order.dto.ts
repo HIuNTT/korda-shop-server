@@ -30,3 +30,11 @@ export class CreateOrderDto {
   @IsUUID()
   quoteId: string;
 }
+
+export class GetOrderInfoDto {
+  @ApiProperty({ name: 'order_code', description: 'Mã đơn hàng' })
+  @Expose({ name: 'order_code' })
+  @IsString()
+  @IsNotEmpty()
+  orderCode: string;
+}

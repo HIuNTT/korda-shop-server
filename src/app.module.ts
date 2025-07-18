@@ -43,9 +43,9 @@ import { OrderModule } from './modules/order/order.module';
     ProductAttributeModule,
     ProductVariantModule,
     CartModule,
+    PaymentModule,
     OrderModule,
     LocationModule,
-    PaymentModule,
     UploadModule,
   ],
   providers: [

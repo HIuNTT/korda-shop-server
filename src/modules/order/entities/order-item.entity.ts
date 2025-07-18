@@ -24,7 +24,9 @@ export class OrderItem extends CommonEntity {
   @Column({ default: 0 })
   originalPrice: number;
 
-  @ManyToOne(() => Order)
+  @ManyToOne(() => Order, {
+    onDelete: 'CASCADE',
+  })
   order: Order;
 
   @ManyToOne(() => ProductVariant)

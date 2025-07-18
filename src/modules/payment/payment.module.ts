@@ -1,8 +1,9 @@
 import { Module } from '@nestjs/common';
 import { PaymentMethodModule } from './payment-method/payment-method.module';
 import { RouterModule } from '@nestjs/core';
+import { CheckoutModule } from './checkout/checkout.module';
 
-const modules = [PaymentMethodModule];
+const modules = [PaymentMethodModule, CheckoutModule];
 
 @Module({
   imports: [

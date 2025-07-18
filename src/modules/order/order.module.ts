@@ -10,6 +10,8 @@ import { Quote } from './entities/quote.entity';
 import { QuoteItem } from './entities/quote-item.entity';
 import { UserAddressModule } from '../account/user-address/user-address.module';
 import { PaymentMethodModule } from '../payment/payment-method/payment-method.module';
+import { Order } from './entities/order.entity';
+import { OrderStatus } from './entities/order-status.entity';
 
 @Module({
   imports: [
@@ -17,9 +19,10 @@ import { PaymentMethodModule } from '../payment/payment-method/payment-method.mo
     UserAddressModule,
     UserModule,
     PaymentMethodModule,
-    TypeOrmModule.forFeature([Quote, QuoteItem]),
+    TypeOrmModule.forFeature([Quote, QuoteItem, Order, OrderStatus]),
   ],
   controllers: [OrderController, QuoteController],
   providers: [OrderService, QuoteService],
+  exports: [OrderService],
 })
 export class OrderModule {}
