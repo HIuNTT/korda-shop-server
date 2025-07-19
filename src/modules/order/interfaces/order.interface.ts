@@ -1,14 +1,24 @@
+import { PaymentMethod } from '#/modules/payment/payment-method/entities/payment-method.entity';
 import { ApiProperty } from '@nestjs/swagger';
-import { Expose } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
 
 export class CreateOrderRes {
   @ApiProperty({ name: 'order_code', description: 'Mã đơn hàng' })
   @Expose({ name: 'order_code' })
   orderCode: string;
 
-  @ApiProperty({ name: 'payment_method', description: 'Phương thức thanh toán' })
+  @ApiProperty({ name: 'total_price', description: 'Tổng giá trị đơn hàng' })
+  @Expose({ name: 'total_price' })
+  totalPrice: number;
+
+  @ApiProperty({
+    name: 'payment_method',
+    description: 'Phương thức thanh toán',
+    type: PaymentMethod,
+  })
   @Expose({ name: 'payment_method' })
-  paymentMethod: string;
+  @Type(() => PaymentMethod)
+  paymentMethod: PaymentMethod;
 
   @ApiProperty({ name: 'qr_code', description: 'Mã QR thanh toán' })
   @Expose({ name: 'qr_code' })

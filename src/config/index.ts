@@ -6,6 +6,7 @@ import { IMailerConfig, MailerConfig, mailerRegToken } from './mailer.config';
 import { IRedisConfig, RedisConfig, redisRegToken } from './redis.config';
 import { ISecurityConfig, SecurityConfig, securityRegToken } from './security.config';
 import { ISwaggerConfig, SwaggerConfig, swaggerRegToken } from './swagger.config';
+import { ITransferConfig, TransferConfig, transferRegToken } from './transfer.config';
 import { IVnpayConfig, VnpayConfig, vnpayRegToken } from './vnpay.config';
 
 export * from './database.config';
@@ -27,6 +28,7 @@ export interface AllConfigType {
   [swaggerRegToken]: ISwaggerConfig;
   [azureRegToken]: IAzureConfig;
   [vnpayRegToken]: IVnpayConfig;
+  [transferRegToken]: ITransferConfig;
 }
 
 export default {
@@ -39,4 +41,5 @@ export default {
   SwaggerConfig,
   AzureConfig,
   VnpayConfig,
+  TransferConfig,
 };

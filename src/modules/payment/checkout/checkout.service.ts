@@ -6,6 +6,8 @@ import { CheckoutRes } from './checkout.interface';
 import { VnpayMessage } from '#/constants/payment.constant';
 import { VnpayService } from 'nestjs-vnpay';
 import { InjectVnpay } from '#/common/decorators/inject-vnpay.decorator';
+import { TransferPaymentDto } from './dto/transfer.dto';
+import { isEmpty } from 'lodash';
 
 @Injectable()
 export class CheckoutService {
@@ -15,8 +17,6 @@ export class CheckoutService {
   ) {}
 
   async checkVnpayPayment(userId: number, dto: VnpayPaymentDto): Promise<CheckoutRes> {
-    console.log('vnpay dto', dto);
-
     const verify = this.vnpayService.instance.verifyReturnUrl(dto);
     if (!verify.isVerified) {
       throw new BadRequestException('Thông tin thanh toán không hợp lệ');
@@ -45,6 +45,24 @@ export class CheckoutService {
         spec: 'Cảm ơn quý khách đã mua hàng tại Korda Shop',
         orderCode: verify.vnp_OrderInfo,
       });
+    }
+  }
+
+  async checkTransferPayment({ content, transferAmount }: TransferPaymentDto) {
+    const orderCode = content.match(/[A-Z0-9]{16}/)[0];
+
+    const order = await this.orderService.getOrderToCheckPayment(orderCode, transferAmount);
+
+    if (isEmpty(order)) {
+      return {
+        success: false,
+        message: 'Không tìm thấy đơn hàng hoặc số tiền không khớp',
+      };
+    } else {
+      await this.orderService.updateOrderStatus(order.code, OrderStatusType.CONFIRMED);
+      return {
+        success: true,
+      };
     }
   }
 }

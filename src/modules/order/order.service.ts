@@ -24,6 +24,7 @@ import { ProductVariant } from '../product-variant/entities/product-variant.enti
 import { Product } from '../product/entities/product.entity';
 import { VnpayService } from 'nestjs-vnpay';
 import { InjectVnpay } from '#/common/decorators/inject-vnpay.decorator';
+import { ITransferConfig, TransferConfig } from '#/config/transfer.config';
 
 @Injectable()
 export class OrderService {
@@ -37,6 +38,7 @@ export class OrderService {
     @InjectRepository(Order) private orderRepository: Repository<Order>,
     @InjectEntityManager() private entityManager: EntityManager,
     @Inject(VnpayConfig.KEY) private vnpayConfig: IVnpayConfig,
+    @Inject(TransferConfig.KEY) private transferConfig: ITransferConfig,
   ) {}
 
   async createOrder(
@@ -139,10 +141,14 @@ export class OrderService {
       }
 
       let qrCode: string = undefined;
+      if (paymentMethod.key === PaymentMethodType.TRANSER_ONLINE) {
+        qrCode = `${this.transferConfig.qrCodePrefix}?acc=${this.transferConfig.account}&bank=${this.transferConfig.bankName}&amount=${2000}&des=${orderCode}`;
+      }
 
       return new CreateOrderRes({
         orderCode,
-        paymentMethod: paymentMethod.key,
+        totalPrice: savedOrder.totalPrice,
+        paymentMethod: paymentMethod,
         paymentUrl,
         qrCode,
       });
@@ -230,6 +236,42 @@ export class OrderService {
     });
   }
 
+  async getOrderStatusCheckPayment(userId: number, orderCode: string): Promise<boolean> {
+    const order = await this.orderRepository.findOne({
+      where: { code: orderCode, user: { id: userId } },
+      relations: {
+        statusItems: {
+          status: true,
+        },
+      },
+      order: {
+        statusItems: { createdAt: 'DESC' },
+      },
+    });
+
+    if (isEmpty(order)) {
+      throw new NotFoundException('Không tìm thấy đơn hàng');
+    }
+
+    if (
+      order.statusItems.length === 1 &&
+      order.statusItems[0].status.name === OrderStatusType.AWAITING_PAYMENT
+    ) {
+      return false; // Chưa thanh toán
+    }
+
+    if (order.statusItems.length > 1) {
+      const latestStatus = order.statusItems[0].status.name;
+      if (latestStatus === OrderStatusType.CONFIRMED) {
+        return true; // Đã thanh toán
+      } else if (latestStatus === OrderStatusType.CANCELED) {
+        throw new ConflictException('Đơn hàng đã bị hủy');
+      } else {
+        return false; // Trạng thái khác, không phải là đã thanh toán
+      }
+    }
+  }
+
   async getOneOrderByCode(userId: number, orderCode: string): Promise<Order> {
     const user = await this.userService.findUserById(userId);
     if (isEmpty(user)) {
@@ -257,6 +299,16 @@ export class OrderService {
     order.statusItems = [currStatus];
 
     return order;
+  }
+
+  async getOrderToCheckPayment(orderCode: string, totalPrice: number): Promise<Order> {
+    return await this.orderRepository.findOne({
+      where: {
+        code: orderCode,
+        // totalPrice: totalPrice,
+        statusItems: { isLatest: true, status: { name: OrderStatusType.AWAITING_PAYMENT } },
+      },
+    });
   }
 
   private generateOrderCode(): string {
