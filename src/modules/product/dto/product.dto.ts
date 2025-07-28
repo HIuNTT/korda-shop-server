@@ -76,7 +76,6 @@ export class ProductDto {
 
   @ApiProperty({ description: 'Tên phụ của sản phẩm', name: 'secondary_name' })
   @Expose({ name: 'secondary_name' })
-  @IsNotEmpty()
   @IsString()
   @IsOptional()
   secondaryName?: string;
@@ -86,7 +85,6 @@ export class ProductDto {
     name: 'related_name',
   })
   @Expose({ name: 'related_name' })
-  @IsNotEmpty()
   @IsString()
   @IsOptional()
   relatedName?: string;
@@ -154,4 +152,14 @@ export class GetProductAttributesDto {
   @ArrayNotEmpty()
   @IsInt({ each: true })
   categoryIds: number[];
+}
+
+export class GetProductDetailDto {
+  @ApiProperty({
+    name: 'slug',
+    description: 'Slug của sản phẩm',
+  })
+  @IsString()
+  @IsNotEmpty()
+  slug: string;
 }

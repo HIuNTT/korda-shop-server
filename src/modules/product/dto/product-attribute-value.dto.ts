@@ -7,14 +7,14 @@ export class ProductAttributeValueDto {
   @Expose({ name: 'option_id' })
   @IsInt()
   @IsOptional()
-  optionId: number;
+  optionId?: number;
 
   @ApiProperty({ name: 'raw_value', description: 'Giá trị dạng chuỗi' })
   @Expose({ name: 'raw_value' })
   @IsString()
   @IsNotEmpty()
   @IsOptional()
-  rawValue: string;
+  rawValue?: string;
 }
 
 export class CreateProductAttributeDto {

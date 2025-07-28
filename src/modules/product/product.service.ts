@@ -21,6 +21,13 @@ import { ProductGroup } from '../product-group/product-group.entity';
 import { ProductVariant } from '../product-variant/entities/product-variant.entity';
 import { ProductVariantOption } from '../product-variant/entities/product-variant-option.entity';
 import { isEmpty } from 'lodash';
+import {
+  GetProductDetail,
+  ProductDetailAttribute,
+  ProductVariantValues,
+  ProductVariationList,
+  ProductVariationValueList,
+} from './interfaces/product-detail.interface';
 
 @Injectable()
 export class ProductService {
@@ -97,6 +104,9 @@ export class ProductService {
       where: { product: { id: product.id } },
       relations: {
         variantValues: true,
+      },
+      order: {
+        id: 'ASC',
       },
     });
 
@@ -284,6 +294,149 @@ export class ProductService {
     });
   }
 
+  async getProductDetailBySlug(slug: string): Promise<GetProductDetail> {
+    const product = await this.productRepository.findOne({
+      where: { slug },
+      relations: {
+        categories: true,
+        attributes: {
+          attribute: {
+            group: true,
+          },
+        },
+        attributeValueOptions: {
+          attribute: {
+            group: true,
+          },
+        },
+        group: true,
+        variants: {
+          variantValues: {
+            variant: true,
+          },
+        },
+      },
+      order: {
+        variants: {
+          id: 'ASC',
+        },
+      },
+    });
+
+    // Lấy ra mảng id category từ cha đến con
+    const categoryIds: number[][] = [];
+    for (const categoryItem of product.categories) {
+      const ancestors = await this.categoryRepository.findAncestors(categoryItem);
+      const ancestorIds = ancestors.map((ancestor) => ancestor.id);
+      categoryIds.push(ancestorIds);
+    }
+
+    const images = await this.productImageRepository.find({
+      where: { product: { id: product.id } },
+      order: { orderNo: 'ASC' },
+      select: {
+        key: true,
+        url: true,
+      },
+    });
+
+    const variationListMap = new Map<number, ProductVariationList>();
+    product.variants[0].variantValues?.forEach((variantValue) => {
+      variationListMap.set(variantValue.variant.id, {
+        typeId: variantValue.variant.id,
+        customValue: '',
+        valueList: [], // Initialize as empty, will be updated later
+      });
+    });
+
+    // Thêm danh sách các lựa chọn biến thể của sản phẩm vào valueList của variationListMap
+    for (const typeId of variationListMap.keys()) {
+      let index = 0;
+      const optionOfVariantType = new Map<number, ProductVariationValueList>();
+
+      for (const variant of product.variants) {
+        for (const option of variant.variantValues) {
+          const optionId = option.id;
+
+          if (!optionOfVariantType.has(optionId) && option.variant.id === typeId) {
+            optionOfVariantType.set(optionId, {
+              valueId: optionId,
+              customValue: '', // Initialize as empty, will be updated later
+            });
+          }
+        }
+      }
+      variationListMap.get(typeId)?.valueList.push(...Array.from(optionOfVariantType.values()));
+    }
+    const variationList = Array.from(variationListMap.values());
+
+    // Tạo danh sách các giá trị biến thể của sản phẩm
+    const productVariantValues: ProductVariantValues[] = product.variants.map((variant) => ({
+      variantId: variant.id,
+      price: variant.price,
+      originalPrice: variant.originalPrice,
+      stock: variant.stock,
+      image: variant.imageUrl
+        ? { key: this.uploadService.getKeyFromUrl(variant.imageUrl), url: variant.imageUrl }
+        : undefined,
+      indexMap: variant.variantValues?.map((opt, idx) =>
+        variationList[idx].valueList.findIndex((v) => v.valueId === opt.id),
+      ),
+    }));
+
+    // Tạo danh sách các thuộc tính của sản phẩm
+    const attributes: ProductDetailAttribute[] = [];
+    for (const attValue of product.attributes) {
+      attributes.push({
+        attributeId: attValue.attribute.id,
+        attributeValues: [
+          {
+            rawValue: attValue.value,
+          },
+        ],
+      });
+    }
+    const attributesMap = new Map<number, ProductAttributeOption[]>();
+    for (const attOption of product.attributeValueOptions) {
+      if (!attributesMap.has(attOption.attribute.id)) {
+        attributesMap.set(attOption.attribute.id, []);
+      }
+      attributesMap.get(attOption.attribute.id).push(attOption);
+    }
+    for (const [attId, attOptions] of attributesMap.entries()) {
+      attributes.push({
+        attributeId: attId,
+        attributeValues: attOptions.map((option) => ({
+          optionId: option.id,
+        })),
+      });
+    }
+
+    const groupId = product.group?.id;
+
+    deleteFields(product, [
+      'ratingSum',
+      'attributes',
+      'attributeValueOptions',
+      'group',
+      'variants',
+      'categories',
+      'quantitySold',
+      'thumbnailUrl',
+      'reviewCount',
+    ]);
+
+    return new GetProductDetail({
+      ...product,
+      categoryIds,
+      images,
+      attributes,
+      variantValues: productVariantValues,
+      variationList,
+      groupId,
+    });
+  }
+
   async create({
     name,
     categoryIds,
@@ -449,12 +602,23 @@ export class ProductService {
 
   async update(
     id: number,
-    { name, categoryIds, images, attributes, description, ...rest }: ProductDto,
+    {
+      name,
+      categoryIds,
+      images,
+      attributes,
+      description,
+      groupId,
+      variantValues,
+      variationList,
+      ...rest
+    }: ProductDto,
   ): Promise<void> {
     const product = await this.productRepository.findOneOrFail({
       where: { id },
       relations: {
         images: true,
+        variants: true,
       },
     });
 
@@ -515,10 +679,41 @@ export class ProductService {
       }
     });
 
+    let price: number;
+    let originalPrice: number;
+    let stock: number;
+
+    if (isEmpty(variationList)) {
+      price = variantValues[0].price;
+      originalPrice = variantValues[0].originalPrice;
+      stock = variantValues[0].stock;
+    }
+    if (!isEmpty(variationList) && !isEmpty(variantValues)) {
+      let minPrice = variantValues[0].price;
+      let minOriginalPrice = variantValues[0].originalPrice;
+      let totalStock = variantValues[0].stock;
+
+      for (let i = 1; i < variantValues.length; i++) {
+        const variant = variantValues[i];
+        if (variant.price < minPrice) {
+          minPrice = variant.price;
+        }
+        if (variant.originalPrice < minOriginalPrice) {
+          minOriginalPrice = variant.originalPrice;
+        }
+        totalStock += variant.stock;
+      }
+
+      price = minPrice;
+      originalPrice = minOriginalPrice;
+      stock = totalStock;
+    }
+
     await this.entityManager.transaction(async (manager) => {
       await manager.delete(ProductImage, { product: { id } }); // Xóa toàn bộ ảnh của sản phẩm trong CSDL để update toàn bộ lại
       const savedProduct = await manager.save(Product, {
         ...product,
+        variants: undefined,
         name,
         slug,
         ...rest,
@@ -526,6 +721,7 @@ export class ProductService {
         categories: await this.categoryRepository.findBy({ id: In(categoryIds) }),
         images: productImages,
         thumbnailUrl: productImages[0].url,
+        group: groupId && (await this.productGroupRepository.findOneBy({ id: groupId })),
       });
 
       const attributeValues: ProductAttributeValue[] = [];
@@ -563,16 +759,76 @@ export class ProductService {
       await manager.save(ProductAttributeValue, attributeValues);
       await manager.save(Product, { ...savedProduct, attributeValueOptions });
 
+      // Cập nhật các biến thể sản phẩm nếu có
+      const seenVariantImageKeys = new Set<string>();
+      const variantImageKeys: string[] = [];
+      const oldVariantImageKeys: string[] = [];
+      const variants: ProductVariant[] = [];
+      if (!isEmpty(variationList) && !isEmpty(variantValues)) {
+        for (const variantValue of variantValues) {
+          const variant = new ProductVariant();
+          variant.product = savedProduct;
+          variant.price = variantValue.price;
+          variant.originalPrice = variantValue.originalPrice;
+          variant.stock = variantValue.stock;
+          variant.imageUrl = this.uploadService.getImageUrl(variantValue.image.key);
+
+          if (variantValue.variantId) {
+            variant.id = variantValue.variantId;
+          }
+
+          if (variantValue.image.url.startsWith(this.uploadService.getPrefixTempImageUrl())) {
+            variantImageKeys.push(variantValue.image.key);
+          }
+          seenVariantImageKeys.add(variantValue.image.key);
+
+          const varCombIds = variantValue.indexMap.map(
+            (idxMap, index) => variationList[index].valueList[idxMap].valueId,
+          );
+          const variantValues = await manager.findBy(ProductVariantOption, { id: In(varCombIds) });
+          variant.variantValues = variantValues;
+          variant.name = [product.name, ...variantValues.map((v) => v.name)].join(' - ');
+
+          variants.push(variant);
+        }
+
+        for (const variant of product.variants) {
+          oldVariantImageKeys.push(this.uploadService.getKeyFromUrl(variant.imageUrl));
+        }
+      }
+
+      // Trường hợp không có biến thể sản phẩm
+      if (isEmpty(variationList) && !isEmpty(variantValues)) {
+        const variant = new ProductVariant();
+        variant.product = savedProduct;
+        variant.price = price;
+        variant.originalPrice = originalPrice;
+        variant.stock = stock;
+        variant.name = savedProduct.name;
+
+        if (variantValues[0].variantId) {
+          variant.id = variantValues[0].variantId;
+        }
+
+        variants.push(variant);
+      }
+
+      await manager.save(ProductVariant, variants);
+
       await Promise.all([
         ...productImages
           .filter((image) => image.key.startsWith(this.uploadService.getPrefixTempImageUrl()))
           .map((image) => this.uploadService.moveToPermanentContainer(image.key)),
         ...descriptionImageKeys.map((key) => this.uploadService.moveToPermanentContainer(key)),
+        ...variantImageKeys.map((key) => this.uploadService.moveToPermanentContainer(key)),
 
         // Delete old images in the database that are no longer in use
         ...oldImageKeys.map((key) => this.uploadService.moveToTemporaryContainer(key)),
         ...oldDescImageKeys
           .filter((key) => !seenDescImageKeys.has(key))
+          .map((key) => this.uploadService.moveToTemporaryContainer(key)),
+        ...oldVariantImageKeys
+          .filter((key) => !seenVariantImageKeys.has(key))
           .map((key) => this.uploadService.moveToTemporaryContainer(key)),
       ]);
     });
