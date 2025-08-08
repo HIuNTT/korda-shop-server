@@ -1,7 +1,7 @@
 import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { CreateOrderDto } from './dto/order.dto';
+import { CreateOrderDto, MyOrderQueryDto } from './dto/order.dto';
 import { UserService } from '../user/user.service';
-import { isEmpty } from 'lodash';
+import { isEmpty, isNil } from 'lodash';
 import { UserAddressService } from '../account/user-address/user-address.service';
 import { PaymentMethodService } from '../payment/payment-method/payment-method.service';
 import { QuoteService } from './services/quote.service';
@@ -17,7 +17,7 @@ import { OrderStatus } from './entities/order-status.entity';
 import { OrderStatusType } from '#/constants/status.constant';
 import { Cart } from '../cart/entities/cart.entity';
 import { CartItem } from '../cart/entities/cart-item.entity';
-import { CreateOrderRes } from './interfaces/order.interface';
+import { CreateOrderRes, MyOrder, MyOrderItem, OrderFlags } from './interfaces/order.interface';
 import { dateFormat } from 'vnpay';
 import { IVnpayConfig, VnpayConfig } from '#/config/vnpay.config';
 import { ProductVariant } from '../product-variant/entities/product-variant.entity';
@@ -25,6 +25,8 @@ import { Product } from '../product/entities/product.entity';
 import { VnpayService } from 'nestjs-vnpay';
 import { InjectVnpay } from '#/common/decorators/inject-vnpay.decorator';
 import { ITransferConfig, TransferConfig } from '#/config/transfer.config';
+import { paginate } from '#/helper/paginate';
+import { Pagination } from '#/helper/paginate/pagination';
 
 @Injectable()
 export class OrderService {
@@ -40,6 +42,94 @@ export class OrderService {
     @Inject(VnpayConfig.KEY) private vnpayConfig: IVnpayConfig,
     @Inject(TransferConfig.KEY) private transferConfig: ITransferConfig,
   ) {}
+
+  async getMyOrders(
+    { page, take, type }: MyOrderQueryDto,
+    userId: number,
+  ): Promise<Pagination<MyOrder>> {
+    const queryBuilder = this.orderRepository
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.statusItems', 'statusItem', 'statusItem.isLatest = :isLatest', {
+        isLatest: true,
+      })
+      .leftJoinAndSelect('statusItem.status', 'status')
+      .leftJoin('order.orderItems', 'orderItem')
+      .addSelect(['orderItem.quantity', 'orderItem.price', 'orderItem.originalPrice'])
+      .leftJoin('orderItem.product', 'product')
+      .addSelect(['product.imageUrl', 'product.name', 'product.stock', 'product.id'])
+      .leftJoin('product.product', 'productInfo')
+      .addSelect(['productInfo.name', 'productInfo.thumbnailUrl', 'productInfo.id'])
+      .leftJoinAndSelect('product.variantValues', 'variantValues')
+      .leftJoin('order.user', 'user')
+      .where('user.id = :userId', { userId })
+      .orderBy('order.createdAt', 'DESC');
+
+    if (!isNil(type)) {
+      queryBuilder.andWhere('status.name = :type', { type });
+    }
+
+    return paginate(queryBuilder, { page, take }, (data) =>
+      data.map((item) => {
+        let count = 0;
+
+        const flags: OrderFlags = {};
+
+        switch (item.statusItems[0].status.name) {
+          case OrderStatusType.AWAITING_PAYMENT:
+            flags.isRepayment = true;
+            flags.isCancel = true;
+            break;
+          case OrderStatusType.AWAITING_CONFIRMATION:
+            flags.isCancel = true;
+            break;
+          case OrderStatusType.CONFIRMED:
+            flags.isCancel = true;
+            break;
+          case OrderStatusType.DELIVERING:
+            flags.isReturn = false;
+            break;
+          case OrderStatusType.COMPLETED:
+            flags.isReBuy = true;
+            flags.isReview = true;
+            flags.isReturn = true;
+            break;
+          case OrderStatusType.CANCELED:
+            flags.isReBuy = true;
+            break;
+        }
+
+        const details: MyOrderItem[] = item.orderItems.map((orderItem) => {
+          count += orderItem.quantity;
+
+          return {
+            itemId: orderItem.product.product.id,
+            variantId: orderItem.product.id,
+            quantity: orderItem.quantity,
+            price: orderItem.price,
+            originalPrice: orderItem.originalPrice,
+            imageUrl: orderItem.product.imageUrl || orderItem.product.product.thumbnailUrl,
+            itemName: orderItem.product.product.name,
+            stock: orderItem.product.stock,
+            variantName: orderItem.product.variantValues.map((variant) => variant.name).join(', '),
+          };
+        });
+
+        return new MyOrder({
+          id: item.id,
+          code: item.code,
+          subtotalPrice: item.subtotalPrice,
+          totalPrice: item.totalPrice,
+          shippingPrice: item.shippingPrice,
+          voucherPrice: item.voucherPrice,
+          createdAt: item.createdAt,
+          status: item.statusItems[0].status.name,
+          count,
+          details,
+          flags,
+        });
+      }),
+    );
+  }
 
   async createOrder(
     userId: number,

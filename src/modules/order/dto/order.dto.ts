@@ -1,6 +1,17 @@
+import { PagerDto } from '#/common/dto/pager.dto';
+import { OrderStatusType } from '#/constants/status.constant';
 import { ApiProperty } from '@nestjs/swagger';
-import { Expose } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Min } from 'class-validator';
+import { Expose, Transform } from 'class-transformer';
+import {
+  IsEnum,
+  IsIn,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Min,
+} from 'class-validator';
 
 export class CreateOrderDto {
   @Expose({ name: 'address_id' })
@@ -37,4 +48,12 @@ export class GetOrderInfoDto {
   @IsString()
   @IsNotEmpty()
   orderCode: string;
+}
+
+export class MyOrderQueryDto extends PagerDto {
+  @ApiProperty({ enum: OrderStatusType })
+  @IsEnum(OrderStatusType)
+  @IsOptional()
+  @Transform(({ value }) => Number.parseInt(value), { toClassOnly: true })
+  type?: OrderStatusType;
 }

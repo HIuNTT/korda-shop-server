@@ -1,15 +1,26 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query } from '@nestjs/common';
 import { OrderService } from './order.service';
 import { AuthUser } from '../auth/decorators/auth-user.decorator';
-import { CreateOrderDto, GetOrderInfoDto } from './dto/order.dto';
+import { CreateOrderDto, GetOrderInfoDto, MyOrderQueryDto } from './dto/order.dto';
 import { Ip } from '#/common/decorators/http.decorator';
-import { CreateOrderRes } from './interfaces/order.interface';
+import { CreateOrderRes, MyOrder } from './interfaces/order.interface';
 import { Order } from './entities/order.entity';
 import { SkipThrottle } from '@nestjs/throttler';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import { Pagination } from '#/helper/paginate/pagination';
 
+@ApiBearerAuth()
 @Controller('order')
 export class OrderController {
   constructor(private orderService: OrderService) {}
+
+  @Get()
+  async getMyOrders(
+    @AuthUser() user: IAuthUser,
+    @Query() dto: MyOrderQueryDto,
+  ): Promise<Pagination<MyOrder>> {
+    return this.orderService.getMyOrders(dto, user.uid);
+  }
 
   @Post('create')
   @HttpCode(HttpStatus.OK)
