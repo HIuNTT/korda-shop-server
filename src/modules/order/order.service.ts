@@ -6,7 +6,7 @@ import { UserAddressService } from '../account/user-address/user-address.service
 import { PaymentMethodService } from '../payment/payment-method/payment-method.service';
 import { QuoteService } from './services/quote.service';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, In, Repository } from 'typeorm';
+import { EntityManager, ILike, In, Repository } from 'typeorm';
 import dayjs from 'dayjs';
 import { generateRandomValue } from '#/utils/tool.util';
 import { Order } from './entities/order.entity';
@@ -44,7 +44,7 @@ export class OrderService {
   ) {}
 
   async getMyOrders(
-    { page, take, type }: MyOrderQueryDto,
+    { page, take, type, keyword }: MyOrderQueryDto,
     userId: number,
   ): Promise<Pagination<MyOrder>> {
     const queryBuilder = this.orderRepository
@@ -66,6 +66,14 @@ export class OrderService {
 
     if (!isNil(type)) {
       queryBuilder.andWhere('status.name = :type', { type });
+    }
+
+    if (!isNil(keyword)) {
+      queryBuilder.andWhere({ code: ILike(`${keyword}`) });
+      queryBuilder.orWhere(
+        `to_tsvector('simple', productInfo.name) @@ plainto_tsquery('simple', :keyword)`,
+        { keyword },
+      );
     }
 
     return paginate(queryBuilder, { page, take }, (data) =>

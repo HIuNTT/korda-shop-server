@@ -56,4 +56,9 @@ export class MyOrderQueryDto extends PagerDto {
   @IsOptional()
   @Transform(({ value }) => Number.parseInt(value), { toClassOnly: true })
   type?: OrderStatusType;
+
+  @ApiProperty({ description: 'Từ khóa tìm kiếm đơn hàng' })
+  @IsString()
+  @IsOptional()
+  keyword?: string;
 }
