@@ -35,7 +35,7 @@ export class Order extends CommonEntity {
   user: User;
 
   @Expose({ name: 'shipping_address' })
-  @OneToOne(() => ShippingAddress, { cascade: true })
+  @OneToOne(() => ShippingAddress, (shippingAddress) => shippingAddress.order, { cascade: true })
   shippingAddress: ShippingAddress;
 
   @Expose({ name: 'status_items' })

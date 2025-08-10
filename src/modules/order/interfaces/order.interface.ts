@@ -103,3 +103,105 @@ export class MyOrder extends PickType(Order, [
     Object.assign(this, partial);
   }
 }
+
+export class MyOrderProducts {
+  @Expose({ name: 'product_id' })
+  productId: number;
+
+  @Expose({ name: 'variant_id' })
+  variantId: number;
+
+  quantity: number;
+  price: number;
+
+  @Expose({ name: 'original_price' })
+  originalPrice: number;
+
+  @Expose({ name: 'image_url' })
+  imageUrl: string;
+
+  @Expose({ name: 'product_name' })
+  productName: string;
+
+  stock: number;
+
+  @Expose({ name: 'variant_name' })
+  variantName: string;
+
+  slug: string;
+}
+
+export class MyOrderAddress {
+  @Expose({ name: 'shipping_name' })
+  shippingName: string;
+
+  @Expose({ name: 'shipping_phone' })
+  shippingPhone: string;
+
+  @Expose({ name: 'shipping_address' })
+  shippingAddress: string;
+}
+
+export class MyOrderPaymentMethod extends PickType(PaymentMethod, [
+  'id',
+  'key',
+  'name',
+  'imageUrl',
+] as const) {}
+
+export class MyOrderProcessing {
+  @Expose({ name: 'create_time' })
+  createTime: Date;
+
+  @Expose({ name: 'confirm_time' })
+  confirmTime?: Date;
+
+  @Expose({ name: 'delivery_time' })
+  deliveryTime?: Date;
+
+  @Expose({ name: 'complete_time' })
+  completeTime?: Date;
+
+  @Expose({ name: 'is_rated' })
+  isRated?: boolean;
+
+  @Expose({ name: 'rating_time' })
+  ratingTime?: Date;
+
+  @Expose({ name: 'cancel_time' })
+  cancelTime?: Date;
+}
+
+export class MyOrderDetail extends PickType(Order, [
+  'id',
+  'code',
+  'note',
+  'subtotalPrice',
+  'totalPrice',
+  'shippingPrice',
+  'voucherPrice',
+  'createdAt',
+] as const) {
+  status: OrderStatusType;
+
+  @Type(() => MyOrderProducts)
+  products: MyOrderProducts[];
+
+  @Type(() => OrderFlags)
+  flags: OrderFlags;
+
+  @Type(() => MyOrderAddress)
+  address: MyOrderAddress;
+
+  @Expose({ name: 'payment_method' })
+  @Type(() => MyOrderPaymentMethod)
+  paymentMethod: MyOrderPaymentMethod;
+
+  @Type(() => MyOrderProcessing)
+  processing: MyOrderProcessing;
+
+  constructor(partial?: Partial<MyOrderDetail>) {
+    super();
+    Object.assign(this, partial);
+  }
+}

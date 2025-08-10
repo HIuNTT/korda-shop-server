@@ -55,7 +55,7 @@ export class ShippingAddress extends CommonEntity {
   })
   ward: Ward;
 
-  @OneToOne(() => Order, {
+  @OneToOne(() => Order, (order) => order.shippingAddress, {
     onDelete: 'CASCADE',
   })
   @JoinColumn()

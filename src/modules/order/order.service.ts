@@ -17,7 +17,14 @@ import { OrderStatus } from './entities/order-status.entity';
 import { OrderStatusType } from '#/constants/status.constant';
 import { Cart } from '../cart/entities/cart.entity';
 import { CartItem } from '../cart/entities/cart-item.entity';
-import { CreateOrderRes, MyOrder, MyOrderItem, OrderFlags } from './interfaces/order.interface';
+import {
+  CreateOrderRes,
+  MyOrder,
+  MyOrderDetail,
+  MyOrderItem,
+  MyOrderProcessing,
+  OrderFlags,
+} from './interfaces/order.interface';
 import { dateFormat } from 'vnpay';
 import { IVnpayConfig, VnpayConfig } from '#/config/vnpay.config';
 import { ProductVariant } from '../product-variant/entities/product-variant.entity';
@@ -53,8 +60,7 @@ export class OrderService {
         isLatest: true,
       })
       .leftJoinAndSelect('statusItem.status', 'status')
-      .leftJoin('order.orderItems', 'orderItem')
-      .addSelect(['orderItem.quantity', 'orderItem.price', 'orderItem.originalPrice'])
+      .leftJoinAndSelect('order.orderItems', 'orderItem')
       .leftJoin('orderItem.product', 'product')
       .addSelect(['product.imageUrl', 'product.name', 'product.stock', 'product.id'])
       .leftJoin('product.product', 'productInfo')
@@ -137,6 +143,127 @@ export class OrderService {
         });
       }),
     );
+  }
+
+  async getMyOrderById(orderId: number, userId: number): Promise<MyOrderDetail> {
+    const order = await this.orderRepository.findOneOrFail({
+      where: { id: orderId, user: { id: userId } },
+      relations: {
+        statusItems: {
+          status: true,
+        },
+        orderItems: {
+          product: {
+            product: true,
+            variantValues: true,
+          },
+        },
+        paymentMethod: true,
+        shippingAddress: {
+          province: true,
+          district: true,
+          ward: true,
+        },
+      },
+      order: {
+        statusItems: {
+          createdAt: 'DESC',
+        },
+      },
+    });
+
+    console.log('shippingAddress', order.statusItems);
+
+    const statusLatest = order.statusItems.find((item) => item.isLatest) || order.statusItems[0];
+
+    const flags: OrderFlags = {};
+
+    switch (statusLatest.status.name) {
+      case OrderStatusType.AWAITING_PAYMENT:
+        flags.isRepayment = true;
+        flags.isCancel = true;
+        break;
+      case OrderStatusType.AWAITING_CONFIRMATION:
+        flags.isCancel = true;
+        break;
+      case OrderStatusType.CONFIRMED:
+        flags.isCancel = true;
+        break;
+      case OrderStatusType.DELIVERING:
+        flags.isReturn = false;
+        break;
+      case OrderStatusType.COMPLETED:
+        flags.isReBuy = true;
+        flags.isReview = true;
+        flags.isReturn = true;
+        break;
+      case OrderStatusType.CANCELED:
+        flags.isReBuy = true;
+        break;
+    }
+
+    const processing: MyOrderProcessing = {
+      createTime: order.createdAt,
+    };
+
+    order.statusItems.forEach((statusItem) => {
+      switch (statusItem.status.name) {
+        case OrderStatusType.CONFIRMED:
+          processing.confirmTime = statusItem.createdAt;
+          break;
+        case OrderStatusType.DELIVERING:
+          processing.deliveryTime = statusItem.createdAt;
+          break;
+        case OrderStatusType.COMPLETED:
+          processing.completeTime = statusItem.createdAt;
+          break;
+        case OrderStatusType.CANCELED:
+          processing.cancelTime = statusItem.createdAt;
+          break;
+      }
+    });
+
+    return new MyOrderDetail({
+      id: order.id,
+      code: order.code,
+      note: order.note,
+      subtotalPrice: order.subtotalPrice,
+      totalPrice: order.totalPrice,
+      shippingPrice: order.shippingPrice,
+      voucherPrice: order.voucherPrice,
+      createdAt: order.createdAt,
+      status: statusLatest.status.name,
+      products: order.orderItems.map((item) => ({
+        productId: item.product.product.id,
+        variantId: item.product.id,
+        quantity: item.quantity,
+        price: item.price,
+        originalPrice: item.originalPrice,
+        imageUrl: item.product.imageUrl || item.product.product.thumbnailUrl,
+        productName: item.product.product.name,
+        stock: item.product.stock,
+        variantName: item.product.variantValues.map((variant) => variant.name).join(', '),
+        slug: item.product.product.slug,
+      })),
+      flags,
+      address: {
+        shippingName: order.shippingAddress.name,
+        shippingPhone: order.shippingAddress.phone,
+        shippingAddress: [
+          order.shippingAddress.address,
+          order.shippingAddress.ward.name,
+          order.shippingAddress.district.name,
+          order.shippingAddress.province.name,
+        ].join(', '),
+      },
+      paymentMethod: {
+        id: order.paymentMethod.id,
+        name: order.paymentMethod.name,
+        key: order.paymentMethod.key,
+        imageUrl: order.paymentMethod.imageUrl,
+      },
+      processing,
+    });
   }
 
   async createOrder(
